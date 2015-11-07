@@ -11,4 +11,3 @@ image(:,:,3)=reshape(B,32,32);
 %Rotate it in the corect direction
 image = rot90(image,3);
 end
-
