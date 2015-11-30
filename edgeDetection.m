@@ -1,4 +1,4 @@
-function [  ] = edgeDetection( data, i )
+function [  ] = edgeDetection( data,method, i  )
 % Edge detection of image i in data "data"
 A = getImage(data,i);
 
@@ -10,7 +10,7 @@ BW = rgb2gray(A);
 subplot(2,4,2), imshow(BW);
 title('image Black & White');
 for j = 1 : 4
-    BWEdge =  edge(BW ,'sobel', 0.05*j);
+    BWEdge =  edgeGrayScale(A,method, 0.05*j);
     subplot(2,4,4+j), subimage(BWEdge);
     str = ['treshold = ', num2str(j*0.05)];
     title(str);
@@ -29,9 +29,9 @@ title('green chanel');
 subplot(2,4,4), subimage(B);
 title('blue chanel');
 treshhold = 0.05;
-edgeR = edge(rgb2gray(R), 'sobel', treshhold);
-edgeG = edge(rgb2gray(G), 'sobel', treshhold);
-edgeB = edge(rgb2gray(B), 'sobel', treshhold);
+edgeR = edge(rgb2gray(R), method, treshhold);
+edgeG = edge(rgb2gray(G), method, treshhold);
+edgeB = edge(rgb2gray(B), method, treshhold);
 edgeTotal = edgeR | edgeG | edgeB;
 subplot(2,4,5), imshow(edgeTotal);
 title('edge total');
@@ -42,7 +42,7 @@ title('edge on green');
 subplot(2,4,8), imshow(edgeB);
 title('edge on blue');
 
-
+edgeStrength(data, method, i)
 
 end
 
