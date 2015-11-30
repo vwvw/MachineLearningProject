@@ -1,0 +1,61 @@
+function [ w_i, w_o ] = simpleNNTrain( data, label, lsize, hdim, rate, iter, rng)
+%NNTRAIN Summary of this function goes here
+%   Detailed explanation goes here
+    [n, ~] = size(data);
+    data = horzcat (ones (n,1), data);
+    [~, dim] = size(data);
+    
+    % Initialise data
+    w_i = rand(dim, hdim);
+    w_o = rand(hdim, lsize);
+    
+    prev_error = -1;
+    
+    errors = zeros(iter);
+    
+    for i=1:iter
+        %do classification
+        disp(['training (' num2str(i) ' out of ' num2str(iter) ')'])
+        
+        error = 0;
+        
+        for k=rng  
+            %inst = randi([1 n]);
+            inst = k;
+            
+            o_i = nnLayer(w_i, data(inst,:));
+            o_o = nnLayer(w_o, o_i);
+            
+            %train data
+            t = zeros(1,lsize);
+            t(label(inst)+1) = 1;
+            
+            error = error + sum(abs(t-o_o));
+            
+            d_o = o_o.* (1-o_o).* (t - o_o);
+            d_i = o_i .* (1-o_i) .* (d_o * transpose(w_o));
+            
+            
+            dw_i = rate * transpose(data(inst,:)) * d_i;
+            dw_o = rate * transpose(o_i) * d_o;
+            
+            w_i = w_i + dw_i;
+            w_o = w_o + dw_o;
+        end
+        
+        disp(['L1 error: ' num2str(error)]);
+        
+        errors(i) = error;
+        
+        if(prev_error == error)
+            disp('converged.');
+            break;
+        else
+            prev_error = error;
+        end
+    end
+
+    plot(error, 1:);
+    
+end
+
