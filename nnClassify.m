@@ -3,9 +3,6 @@ function [ class ] = nnClassify( data, w_in, w, w_out )
 %   Detailed explanation goes here
     [n, dim] = size(data);
     
-    
-    data = horzcat (repmat (1,n,1), data);
-    
     [~,~,nhlayers] = size(w);
     
     out = nnLayer(w_in, data);
@@ -24,7 +21,7 @@ function [ class ] = nnClassify( data, w_in, w, w_out )
     for i=1:nhlayers
         out = nnLayer(w(:,:,i), out);
         out_gathered = gather(out) * 255;
-        disp([min(out_gathered), max(out_gathered)]);
+        %disp([min(out_gathered), max(out_gathered)]);
         
         % Create a 32x32 color image.
         %image = zeros(32,32,3, 'uint8');

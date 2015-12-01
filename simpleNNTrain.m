@@ -11,7 +11,7 @@ function [ w_i, w_o ] = simpleNNTrain( data, label, lsize, hdim, rate, momentum,
     
     prev_error = -1;
     
-    errors = zeros(iter);
+    errors = zeros(1, iter);
     
     for i=1:iter
         %do classification
