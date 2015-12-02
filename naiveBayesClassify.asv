@@ -1,9 +1,9 @@
 function [t] = naiveBayesClassify(xTest, M, V, p)
-    M = transpose(M);
-    V = transpose(sqrt(V));
+    %M = transpose(M);
+    %V = transpose(sqrt(V));
     len = length(p);
     
-    [N,~] = size(xTest);
+    [N,~] = size(M);
     
 %     t = arrayfun( ...
 %           @(x) ...
@@ -17,13 +17,12 @@ function [t] = naiveBayesClassify(xTest, M, V, p)
 
     t = zeros(N, 1);
     
-    lp = log(p);
     
-    for i=1:N
-        classes = arrayfun (@(y) sum(log(normpdf(xTest(i,:),M(y,:),V(y,:)))) + lp(y), 1:len);
-        
-        t(i) = maxId(classes)-1;
+    
+    for i=1:len
+         
     end
+    
     
 end
 
