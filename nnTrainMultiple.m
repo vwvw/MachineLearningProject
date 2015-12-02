@@ -1,4 +1,4 @@
-function [ w_i, w, w_o ] = nnTrainMultiple( data, label, lsize, hdims, hlayers, rates, iters )
+function [ w_i, w, w_o ] = nnTrainMultiple( data, labels, lsize, hdims, hlayers, rates, iters )
 %NNTRAINMULTIPLE Summary of this function goes here
 %   Detailed explanation goes here
     
@@ -10,7 +10,7 @@ function [ w_i, w, w_o ] = nnTrainMultiple( data, label, lsize, hdims, hlayers, 
 
 
     parfor i=1:n
-        [w_i(i), w(i), w_o(i)] = nnTrain(data, label, lsize, hdims(i), hlayers(i), rates(i), iters(i));
+        [w_i(i), w(i), w_o(i)] = nnTrain(data, labels, lsize, hdims(i), hlayers(i), rates(i), iters(i));
     end
     
 end

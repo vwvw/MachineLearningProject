@@ -1,4 +1,4 @@
-function [ w_i, w_o ] = simpleNNTrain( data, label, lsize, hdim, rate, momentum, iter, rng)
+function [ w_i, w_o ] = simpleNNTrain( data, labels, lsize, hdim, rate, momentum, iter, rng)
 %NNTRAIN Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -34,7 +34,7 @@ function [ w_i, w_o ] = simpleNNTrain( data, label, lsize, hdim, rate, momentum,
             
             %train data
             t = zeros(1,lsize);
-            t(label(inst)+1) = 1;
+            t(labels(inst)+1) = 1;
             
             if(length(o_o)~=lsize || length(t)~=lsize)
                 disp('dim mismatch');
