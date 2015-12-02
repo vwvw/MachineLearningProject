@@ -1,6 +1,12 @@
 function [ w_i, w_o ] = simpleNNTrain( data, label, lsize, hdim, rate, momentum, iter, rng)
 %NNTRAIN Summary of this function goes here
 %   Detailed explanation goes here
+
+
+
+
+
+
     [n, dim] = size(data);
     
     % Initialise data
@@ -32,7 +38,7 @@ function [ w_i, w_o ] = simpleNNTrain( data, label, lsize, hdim, rate, momentum,
             
             if(length(o_o)~=lsize || length(t)~=lsize)
                 disp('dim mismatch');
-                disp(o_o);
+                disp(inst);
                 disp('----');
                 disp(t);
                 disp(['dimension mismatch: ' num2str(length(o_o)) '; ' num2str(length(t))]);

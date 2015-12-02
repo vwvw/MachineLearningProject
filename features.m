@@ -4,21 +4,15 @@ function [ feat ] = features( data )
 
     [n,~] = size(data);
     
-    %edge = zeros(n, 1024);
-    domColors = zeros(n, 3);
     
-    hog = zeros(n, 496);
-    
-    
-    %% compute the first 10 SIFT features
+    hog = zeros(n, 279);
     
     for i=1:n
        image = single(getImage(data, i));
-       domColors(i,:) = dominantColor(data, i);
-       hog(i,:) = reshape(vl_hog(image, 8), 1, 496);
+       hog(i,:) = reshape(vl_hog(image, 12), 1, 279);
     end
 
-    feat = horzcat(domColors, hog);
+    feat = hog;
 
 end
 

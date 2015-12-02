@@ -1,1 +1,1 @@
-run('/Users/nicolasbadoux/GitHub/MachineLearning/vlfeat-0.9.20/toolbox/vl_setup.m')
+run('vlfeat-0.9.20/toolbox/vl_setup.m')
