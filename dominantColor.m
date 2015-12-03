@@ -10,7 +10,7 @@ dominantColorOccurences = -Inf;
 A = double(A);
 for i = 1 : 32
     for j = 1 : 32
-        if mod(i+j,2) == 0
+        if mod(i+j,4) == 0
            R = A(i,j,1);
            G = A(i,j,2);
            B = A(i,j,3);

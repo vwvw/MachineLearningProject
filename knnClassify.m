@@ -4,28 +4,34 @@ function [ output ] = knnClassify( data, km, k, labels)
 
     [n,~] = size(data);
     
-    hog = kMeansPrep(data, zeros(n,1));
-    
-    [~,~,~,m] = size(km);
-    
+    hog = kMeansPrep(data);
+    [~,m] = size(km);
     output = zeros(n,1);
     
     parfor i=1:n
-        means = -ones(k,2);
         
+        means = Inf(k,2);
+        if mod(i,100) == 0
+            disp(i);
+        end
         for j=1:m
             
             %compute the distance function
-            delta = sum(sum(sum(abs(hog(:,:,:,i)-km(:,:,:,j)))));
+            delta = sum(abs(hog(:,i)-km(:,j)));
             
-            
-            for p=1:k
-                if delta < means(p,1) || means(p,1) == -1
-                    means(p+1:end,:) = means(p:end-1,:);
-                    means(p,1) = delta;
-                    means(p,2) = labels(j);
-                    break;
+            if delta < means(1,1) 
+                p = 1;
+                while p <k && means(p+1,1)>delta
+                    p = p+1;
                 end
+                if p ~= 1
+                    means(1:p-1, :) = means(2:p,:);
+                end
+
+
+                means(p,1) = delta;
+                means(p,2) = labels(j);
+
             end
             
         end

@@ -58,28 +58,39 @@ NIPS requires electronic submissions.  The electronic submission site is
 
 Please read carefully the
 instructions below, and follow them faithfully.
-\subsection{Style}
+\subsection{Features extraction}
+We have extracted different features from the image. 
+\subsection*{Raw pixel data}
+We have trained some classifier with the raw RGB value of the pixel. Until now we did not get a good result. 
+\subsection*{Dominant Color}
+We first apply a blur to the image to smooth the color. This will help us after to reduce the computation.
+\\
+To extract the dominant color, we sample the image every 4 pixels and compare the color sampled to every pixels in the image, counting how many pixels are in a certain range of the sampled color. \\
+We sample every for pixel to spare some computations. Since we are trying to find the dominant color, it's quite certain that even looking to only one fourth of the pixel we will encounter the most dominant color. We also check that the color picked is not the already dominant color.
+The range is 100 and is the sum of the differences between the R, G and B values. 
+\subsection*{Edge detection}
+We apply a simply Sobel algorithm on the image in black and white. We have also implement an edge detection on the different R, G and B channel and then regroup the different edges. \\
+This give us an interesting result, some edges appear only in some color channel (like between a blue sky and a blue sea, the blue channel would not give us any result but the red channel can). Comparing it with the grayscale edge detection give also some feedback.
 
-Papers to be submitted to NIPS 2013 must be prepared according to the
-instructions presented here. Papers may be only up to eight pages long,
-including figures. Since 2009 an additional ninth page \textit{containing only
-cited references} is allowed. Papers that exceed nine pages will not be
-reviewed, or in any other way considered for presentation at the conference.
-%This is a strict upper bound.
+\subsection*{Horizontal Line}
 
-Please note that this year we have introduced automatic line number generation
-into the style file (for \LaTeXe and Word versions). This is to help reviewers
-refer to specific lines of the paper when they make their comments. Please do
-NOT refer to these line numbers in your paper as they will be removed from the
-style file for the final version of accepted papers.
+We try to find an horizontal edge in the image. This could mean an horizon (like in the case of a ship at sea) or a straight horizontal line (for example a photo of a truck sideways). \\
+To extract this feature, we first apply the sobel algorithm to the image with no too small threshold (0.14 in this case). Then we go trough the lines of the image and count how many pixel in the line, in the line just above or in the line just under are marked as edges. A high number represent lot of edges in the same horizontal area. \\
+To counter the case were we would just had a lot of edges but not specially in a horizontal shape and not give a higher score with an image with fewer pixel marked as edges but all in an horizontal line, we substract to the highest number we found, the 4th highest number.\\
+That mean, we take the group of 3 lines with the maximum of pixel denoted as edges and decrease this value by the number of pixel denoted as edges in another group of 3 lines. 
+Therefore, if the image has lot of pixel marked as edges but not particularly in a horizontal line, the score would be much nearer to zero. 
 
-The margins in 2013 are the same as since 2007, which allow for $\approx 15\%$
-more words in the paper compared to earlier years. We are also again using
-double-blind reviewing. Both of these require the use of new style files.
+\subsection*{Histogram of oriented gradients}
+We have also used VLFeat to extract the Histogram of oriented gradients (HOG).
+We are still trying to adjust the cell size to match at best our classifier without timing out. 
+The HOG values give us some insight on the edges as well as on color or intensity value of the image. Therefore it's a quite interesting feature that gave us some good result alone. 
 
-Authors are required to use the NIPS \LaTeX{} style files obtainable at the
-NIPS website as indicated below. Please make sure you use the current files and
-not previous versions. Tweaking the style files may be grounds for rejection.
+\subsection*{Further improvements}
+We will continue to improve our features extraction and make it match at best with our different classifiers. This can for example mean finding the good threshold for the edge detection or change the linearity of the score of the horizontal line feature. 
+\\
+We will try to use Scale-invariant feature transform (SIFT) to gain other insights into the image. 
+\\ Our plans also include to try different combinations of features to get the best result without compromising some classifiers assumptions (like Naive Bayes assumptions).
+
 
 %% \subsection{Double-blind reviewing}
 
