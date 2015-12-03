@@ -2,9 +2,20 @@
 \usepackage{nips13submit_e,times}
 \usepackage{hyperref}
 \usepackage{url}
+\usepackage{amsmath, amsthm, amssymb, mathrsfs}
+\usepackage{listings,courier,color}
+\usepackage{tikz}
+\usepackage[margin=1in]{geometry}
 %\documentstyle[nips13submit_09,times,art10]{article} % For LaTeX 2.09
 
 
+\lstset{language=Matlab}
+\lstset{
+	basicstyle=\footnotesize\ttfamily,
+	breaklines=true,
+	morekeywords={assert},
+	showstringspaces=false
+}
 \input{definitions}
 
 
@@ -42,396 +53,137 @@ Switzerland \\
 \maketitle
 
 \begin{abstract}
-The abstract paragraph should be indented 1/2~inch (3~picas) on both left and
-right-hand margins. Use 10~point type, with a vertical spacing of 11~points.
-The word \textbf{Abstract} must be centered, bold, and in point size 12. Two
-line spaces precede the abstract. The abstract must be limited to one
-paragraph.
+In this midway report, we managed to use a $k$th nearest neighbour classifier to achieve a reasonable classification accuracy of a subset of CIFAR-10 images dubbed \code{subset_CIFAR10}, albeit with slower runtime. We also implemented classifiers such as na\"ive Bayes and neural networks with little success. We have also investigated different features to use in classification.
 \end{abstract}
 
-\section{Submission of papers to NIPS 2013}
+\section{Introduction}
 
-NIPS requires electronic submissions.  The electronic submission site is
-\begin{center}
-   \url{http://papers.nips.cc}
-\end{center}
+For this project, we aim to classify CIFAR-10 images dataset - a collection of 10000 32$\x$32 images, into one of ten categories, as per project requirements,
+our classifiers are trained solely on a subset of 5000 CIFAR-10 images provided to us as \code{subset_CIFAR10}. As of this midway report, we have explored many
+classifiers, including Na\"ive Bayes, logistic regression, neural network, deep neural network, convolutional neural network, and $k$th nearest neighbour. Due
+to the complicated nature of neural networks, we have not yet found a set of satisfactory parameters that would give a decent output. However, we were able to
+produce a $k$th nearest neighbour classifier with an accuracy of $53\%$\footnote{This classifier ran for 194 seconds on a local machine with a 2.4 GHz quad-core
+processor. The classifier was highly parallelised, utilising \code{parfor} with 4 worker threads. The 53\% accuracy was tested on \code{test_batch.mat} from 
+CIFAR-10 dataset.}
 
-Please read carefully the
-instructions below, and follow them faithfully.
-\subsection{Features extraction}
-We have extracted different features from the image. 
-\subsection*{Raw pixel data}
-We have trained some classifier with the raw RGB value of the pixel. Until now we did not get a good result. 
-\subsection*{Dominant Color}
-We first apply a blur to the image to smooth the color. This will help us after to reduce the computation.
-\\
-To extract the dominant color, we sample the image every 4 pixels and compare the color sampled to every pixels in the image, counting how many pixels are in a certain range of the sampled color. \\
-We sample every for pixel to spare some computations. Since we are trying to find the dominant color, it's quite certain that even looking to only one fourth of the pixel we will encounter the most dominant color. We also check that the color picked is not the already dominant color.
-The range is 100 and is the sum of the differences between the R, G and B values. 
-\subsection*{Edge detection}
-We apply a simply Sobel algorithm on the image in black and white. We have also implement an edge detection on the different R, G and B channel and then regroup the different edges. \\
-This give us an interesting result, some edges appear only in some color channel (like between a blue sky and a blue sea, the blue channel would not give us any result but the red channel can). Comparing it with the grayscale edge detection give also some feedback.
+\subsection{Motivation}
 
-\subsection*{Horizontal Line}
+We decided to focus primarily on neural networks due to its ability to model many abstract concepts, and neural networks, especially convolution neural networks (CNN), such as LeNet,
+has seen great success in the area of image recognition. Our goal for this project is to implement a working CNN to classify the given dataset. However, in doing so, we would have 
+to face many challenges, including initialisation of values, performing back-propagation on convolutional and pooling layers, and find the optimal set of parameters for optimal
+performance.
 
-We try to find an horizontal edge in the image. This could mean an horizon (like in the case of a ship at sea) or a straight horizontal line (for example a photo of a truck sideways). \\
-To extract this feature, we first apply the sobel algorithm to the image with no too small threshold (0.14 in this case). Then we go trough the lines of the image and count how many pixel in the line, in the line just above or in the line just under are marked as edges. A high number represent lot of edges in the same horizontal area. \\
-To counter the case were we would just had a lot of edges but not specially in a horizontal shape and not give a higher score with an image with fewer pixel marked as edges but all in an horizontal line, we substract to the highest number we found, the 4th highest number.\\
-That mean, we take the group of 3 lines with the maximum of pixel denoted as edges and decrease this value by the number of pixel denoted as edges in another group of 3 lines. 
-Therefore, if the image has lot of pixel marked as edges but not particularly in a horizontal line, the score would be much nearer to zero. 
+\subsection{Background and Related Work}
 
-\subsection*{Histogram of oriented gradients}
+Xavier Glorot and Yoshua Bengio [1] noted that initialisation of neural network weights should be sampled from a distribution of mean 0 and variance $\frac{2}{n_{in}+n_{out}}$.
+Further research was done in attempt to understand convolutional neural networks in terms of concept and implementation.
+
+
+
+\section{Method}
+Methodology is further broken down into three parts, classifiers, feature selection and training.
+
+\subsection{Classifiers}
+We have attempted and tried various supervised learning algorithms, some with more success than others.
+
+\subsubsection{Na\"ive Bayes}
+The Na\"ive Bayes classifier seeks to maximise
+$$\prob{Y|X}$$
+with the assumption that
+$$\forall i,j,  i\neq j \cdot \prob{X_i|X_j, Y}=\prob{X_i|Y}$$
+In other words, it assumes that all input features are conditionally independent of each other given the prior. However, in the case of image classification, this assumption does
+not hold very well, as in a normal image, the intensity or colour of a pixel will depend on the intensities and colours of neighbouring pixels. Therefore, using raw pixel values (both 
+RGB and HSV\footnote{Hue, Saturation and Value. This colour space separates the hue, or colour from its intensity and brightness, and we can treat the three values as essentially independent of each other.}), we were only able to achieve around $30\%$ classification accuracy. Using histogram of oriented gradients improved the classification accuracy to $48.7\%$. However, we
+were unable to improve on the classification accuracy. We did attempt to change the \code{cell_size} parameter, however, we found that at higher values, it leads to overfitting, and
+at lower levels, it reduces classification accuracy.
+
+The classifier was implemented as Gaussian features each with a mean and variance estimate. Log likelihood was used to avoid floating-point underflow. However, other posterior distributions could also be considered, such as Beta in case of pixel values.
+
+\subsubsection{Neural Network}
+Most of our time was focused on attempting to produce a useable classifier using a neural network. We implemented three variants of neural networks, a simple neural network with 1 hidden layer, a deep neural network with multiple hidden layers of the same size, and a convolutional neural network with one convolutional layer, one pooling layer and a fully connected layer.
+
+For all of our neural network layers (other than the convolutional and pooling layers), the activation function is given as
+$$o = \frac{1}{1+e^{-X\cdot W}}$$
+where $o$ is the output, and $X$ is the input layer and $W$ is the associated weight, which we then initialised using Xavier initialisation discussed earlier and trained using back-propagation.
+We also used entropy as objective function, where
+$$\delta_k = o_k(1-o_k)(t_k-o_k)$$
+where $t_k$ is the expected output of the $k$th neuron. Furthermore, for all of our neural network implementations, the final layer had 10 neurons, each indicating a class probability. The final decision is reached by 
+$$\arg\max_k o_k$$
+
+In order to visualise the gradient descent, we implemented two error functions:
+  $$E_1 = \summ{i}{}{|t_i-o_i|}$$
+and
+  $$E_2 = \summ{i}{}{(t_i-o_i)^2}$$
+Both these errors were only used once per epoch to test for convergence, which we defined as $E_{t}\geq E_{t-1}$.
+
+The performances for these networks were sub-par, the most success we had was a network with 17 hidden layers which had a classification accuracy of $13\%$. It was trained with stochastic gradient descent of batch sizes 5000, and learning rate $\eta=0.1$ and momentum $\alpha=0.95$.
+
+\subsubsection{$k$th Nearest Neighbour}
+Our final attempt at a classifier was to implement $k$th nearest neighbour with a image kernel. $k$th nearest neighbour seeks to find the, as the name suggest, $k$ nearest neighbours and obtain the mode label. We have tried a variety of input features with this algorithm, including dominant colour, scale-invariant feature transform (SIFT), and histogram of oriented gradients (HOG). For SIFT, the distance metric was to first perform \code{vl_ubcmatch} on test sample and neighbour, and order neighbours by number of matches and then by sum of distance, so suppose that
+\begin{lstlisting}
+  [~, scores] = vl_ubcmatch(sample, neighbour);
+  [n, d] = size(scores);
+\end{lstlisting}
+then
+$$A < B \eqv \codem{n}_A>\codem{n}_B \/ (\codem{n}_A=\codem{n}_B\+\summ{i=0}{\codem{n}_A}{\codem{scores}_{A,i}}<\summ{i=0}{\codem{n}_B}{\codem{scores}_{B,i}})$$
+
+However, this metric did not perform very well, and its classification accuracy was around $30\%$.
+
+We also used HOG features with $\codem{cell_size}=8$. Here, our distance metric is the L1 sum of the difference of the HOG features. Suppose that the HOG feature of each image is a $N\x N\x K$ tensor, and the HOG features of the test image and its neighbour is $F$ and $G$ respectively, then our distance metric can be characterised as
+$$d=\summ{i=1}{N}\summ{j=1}{N}\summ{k=1}{K}|F_{ijk}-G_{ijk}|$$
+
+This classifier is our best performing classifier so far, with an accuracy of $53\%$. Our final attempt also included the most dominant colour (in RGB) in the image.
+
+Unfortunately, our only optimisation done so far for this classifier was to use \code{parfor} instead of \code{for} to invoke parallelism in code, and that has brought the runtime down to around 3 minutes on a multi-core machine using Matlab's Parallel Computing Toolkit. We are, however, aware that the Toolkit is not available in Octave, and we would not be utilise it during the final submission. Hence, we are also looking at other optimisations, such as implementing a $k$-d tree to hold the nearest neighbour.
+
+\subsection{Features Extraction}
+We have attempted to extract different features from the image in order to reduce noise in the data.
+
+\subsubsection{Raw Pixel Data}
+We have trained some classifier with the raw pixel value, both RGB, HSV and intensity. Until now we did not get a good result. However, we are hopeful that a well-trained convolutional neural network would be able to produce reasonable results with raw pixel values.
+
+\subsubsection{Dominant Colour}
+We noticed that some colours in the image only appears on specific classes, such as red, thus we theorised that dominant colours could aid us in classification. To obtain it, we applied a blur to the image to smooth the colour. To extract the dominant color, we sampled the image every 4 pixels and compared the colour sampled to every pixel in the image, counting how many pixels are in a certain range of the sampled color.
+
+We sample every four pixels to spare some computations. Since we are trying to find the dominant colour, it's quite certain that even looking to only one fourth of the pixel we will encounter the most dominant colour. We also check that the colour picked is not the already dominant colour. The range is 100 and is the sum of the differences between the R, G and B values. 
+
+\subsubsection{Edge detection}
+We apply a simple Sobel algorithm on the grayscale image. We have also implemented an edge detection on the different R, G and B channels and then regroup the different edges. This give us an interesting result, some edges appear only in some color channel (like between a blue sky and a blue sea, the blue channel would not give us any result but the red channel can). Comparing it with the grayscale edge detection give also some feedback.
+
+\subsubsection{Horizontal Line}
+
+We also tried to find an horizontal edge in the image. This could mean an horizon (like in the case of a ship at sea) or a straight horizontal line (for example a photo of a truck sideways). To extract this feature, we first applied the Sobel algorithm to the image with reasonable threshold (0.14 in this case). Then we went trough the lines of the image and counted how many pixel were on the line, just above or just below and are marked as edges. A higher number represent lot of edges in the same horizontal area. 
+
+To counter the case were we would just had a lot of edges but not specially in a horizontal shape and not give a higher score with an image with fewer pixel marked as edges but all in an horizontal line, we subtract to the highest number we found, the 4th highest number. That means, we take the group of 3 lines with the maximum of pixel denoted as edges and decrease this value by the number of pixel denoted as edges in another group of 3 lines. Therefore, if the image has lot of pixel marked as edges but not particularly in a horizontal line, the score would be much nearer to zero. 
+
+\subsubsection{Histogram of Oriented Gradients}
 We have also used VLFeat to extract the Histogram of oriented gradients (HOG).
 We are still trying to adjust the cell size to match at best our classifier without timing out. 
 The HOG values give us some insight on the edges as well as on color or intensity value of the image. Therefore it's a quite interesting feature that gave us some good result alone. 
 
-\subsection*{Further improvements}
-We will continue to improve our features extraction and make it match at best with our different classifiers. This can for example mean finding the good threshold for the edge detection or change the linearity of the score of the horizontal line feature. 
-\\
-We will try to use Scale-invariant feature transform (SIFT) to gain other insights into the image. 
-\\ Our plans also include to try different combinations of features to get the best result without compromising some classifiers assumptions (like Naive Bayes assumptions).
+\subsection{Training}
+We have also attempted various methods of training the different classifiers. For Na\"ive Bayes, we used MLE log likelihood with Gaussian likelihoods. However, if we were to use feature values that which are bounded in one end or two, other distributions, such as Gamma or Beta could prove to be more useful. We could also use semi-supervised learning and boosting to boost the performance of Na\"ive Bayes classifier.
 
+For the neural networks, we were using stochastic gradient descent with batch sizes of 5000. We added a momentum factor as our classifier was often getting stuck at local optima - it found a minima where it gives the same classification to all images, and could not move past that point. There is obviously much to learn and research about neural networks.
 
-%% \subsection{Double-blind reviewing}
+For $k$th nearest neighbour, we would need to store the neighbours in a more organised data structure instead of a list. The current $k$NN algorithm we have runs in $O(nd)$ work and $O(d)$ span, where $n$ is the number of test samples and $d$ is the number of training samples. However, with the implementation of a $k$-d tree data structure, we could lower the work and span bounds to $O(n\log d)$ and $O(\log d)$ respectively.
 
-%% This year we are doing double-blind reviewing: the reviewers will not know
-%% who the authors of the paper are. For submission, the NIPS style file will
-%% automatically anonymize the author list at the beginning of the paper.
 
-%% Please write your paper in such a way to preserve anonymity. Refer to
-%% previous work by the author(s) in the third person, rather than first
-%% person. Do not provide Web links to supporting material at an identifiable
-%% web site.
 
-%%\subsection{Electronic submission}
-%%
-%% \textbf{THE SUBMISSION DEADLINE IS MAY 31st, 2013. SUBMISSIONS MUST BE LOGGED BY
-%% 23:00, MAY 31st, 2013, UNIVERSAL TIME}
+\section{Conclusion and Further Improvements}
+We will continue to improve our features extraction and make it match at best with our different classifiers. This can for example mean finding the good threshold for the edge detection or change the linearity of the score of the horizontal line feature. Our plans also include to try different combinations of features to get the best result without compromising some classifiers assumptions (like Na\"ive Bayes assumptions).
 
-%% You must enter your submission in the electronic submission form available at
-%% the NIPS website listed above. You will be asked to enter paper title, name of
-%% all authors, keyword(s), and data about the contact
-%% author (name, full address, telephone, fax, and email). You will need to
-%% upload an electronic (postscript or pdf) version of your paper.
+We will try to use Scale-invariant feature transform (SIFT) to gain other insights into the image. In addition, we feel that a support-vector machine using SIFT as feature could yield a fairly decent classifier, and we would investigate into SVMs more.
 
-%% You can upload more than one version of your paper, until the
-%% submission deadline. We strongly recommended uploading your paper in
-%% advance of the deadline, so you can avoid last-minute server congestion.
-%%
-%% Note that your submission is only valid if you get an e-mail
-%% confirmation from the server. If you do not get such an e-mail, please
-%% try uploading again.
+We would also like to learn and complete the implementation of neural networks, especially CNNs, and implement a effecient and fast back-propagation algorithm for the learning of these networks. We would also want to optimise the factors, such as filter size, pooling size, and number of convolutional layers, pooling layers and hidden layers in the fully connected stage, as well as learning parameters such as $\eta$ and $\alpha$. We would also like to investigate into how to implement and learn the bias related to convolutional layers and sigmoid layers.
 
+Lastly, we would like to optimise $k$NN to utilise more effecient data structures.
 
-\subsection{Retrieval of style files}
 
-The style files for NIPS and other conference information are available on the World Wide Web at
-\begin{center}
-   \url{http://www.nips.cc/}
-\end{center}
-The file \verb+nips2013.pdf+ contains these
-instructions and illustrates the
-various formatting requirements your NIPS paper must satisfy. \LaTeX{}
-users can choose between two style files:
-\verb+nips11submit_09.sty+ (to be used with \LaTeX{} version 2.09) and
-\verb+nips11submit_e.sty+ (to be used with \LaTeX{}2e). The file
-\verb+nips2013.tex+ may be used as a ``shell'' for writing your paper. All you
-have to do is replace the author, title, abstract, and text of the paper with
-your own. The file
-\verb+nips2013.rtf+ is provided as a shell for MS Word users.
 
-The formatting instructions contained in these style files are summarized in
-sections \ref{gen_inst}, \ref{headings}, and \ref{others} below.
-
-%% \subsection{Keywords for paper submission}
-%% Your NIPS paper can be submitted with any of the following keywords (more than one keyword is possible for each paper):
-
-%% \begin{verbatim}
-%% Bioinformatics
-%% Biological Vision
-%% Brain Imaging and Brain Computer Interfacing
-%% Clustering
-%% Cognitive Science
-%% Control and Reinforcement Learning
-%% Dimensionality Reduction and Manifolds
-%% Feature Selection
-%% Gaussian Processes
-%% Graphical Models
-%% Hardware Technologies
-%% Kernels
-%% Learning Theory
-%% Machine Vision
-%% Margins and Boosting
-%% Neural Networks
-%% Neuroscience
-%% Other Algorithms and Architectures
-%% Other Applications
-%% Semi-supervised Learning
-%% Speech and Signal Processing
-%% Text and Language Applications
-
-%% \end{verbatim}
-
-\section{General formatting instructions}
-\label{gen_inst}
-
-The text must be confined within a rectangle 5.5~inches (33~picas) wide and
-9~inches (54~picas) long. The left margin is 1.5~inch (9~picas).
-Use 10~point type with a vertical spacing of 11~points. Times New Roman is the
-preferred typeface throughout. Paragraphs are separated by 1/2~line space,
-with no indentation.
-
-Paper title is 17~point, initial caps/lower case, bold, centered between
-2~horizontal rules. Top rule is 4~points thick and bottom rule is 1~point
-thick. Allow 1/4~inch space above and below title to rules. All pages should
-start at 1~inch (6~picas) from the top of the page.
-
-%The version of the paper submitted for review should have ``Anonymous Author(s)'' as the author of the paper.
-
-For the final version, authors' names are
-set in boldface, and each name is centered above the corresponding
-address. The lead author's name is to be listed first (left-most), and
-the co-authors' names (if different address) are set to follow. If
-there is only one co-author, list both author and co-author side by side.
-
-Please pay special attention to the instructions in section \ref{others}
-regarding figures, tables, acknowledgments, and references.
-
-\section{Headings: first level}
-\label{headings}
-
-First level headings are lower case (except for first word and proper nouns),
-flush left, bold and in point size 12. One line space before the first level
-heading and 1/2~line space after the first level heading.
-
-\subsection{Headings: second level}
-
-Second level headings are lower case (except for first word and proper nouns),
-flush left, bold and in point size 10. One line space before the second level
-heading and 1/2~line space after the second level heading.
-
-\subsubsection{Headings: third level}
-
-Third level headings are lower case (except for first word and proper nouns),
-flush left, bold and in point size 10. One line space before the third level
-heading and 1/2~line space after the third level heading.
-
-\section{Citations, figures, tables, references}
-\label{others}
-
-These instructions apply to everyone, regardless of the formatter being used.
-
-\subsection{Citations within the text}
-
-Citations within the text should be numbered consecutively. The corresponding
-number is to appear enclosed in square brackets, such as [1] or [2]-[5]. The
-corresponding references are to be listed in the same order at the end of the
-paper, in the \textbf{References} section. (Note: the standard
-\textsc{Bib\TeX} style \texttt{unsrt} produces this.) As to the format of the
-references themselves, any style is acceptable as long as it is used
-consistently.
-
-As submission is double blind, refer to your own published work in the
-third person. That is, use ``In the previous work of Jones et al.\ [4]'',
-not ``In our previous work [4]''. If you cite your other papers that
-are not widely available (e.g.\ a journal paper under review), use
-anonymous author names in the citation, e.g.\ an author of the
-form ``A.\ Anonymous''.
-
-
-\subsection{Footnotes}
-
-Indicate footnotes with a number\footnote{Sample of the first footnote} in the
-text. Place the footnotes at the bottom of the page on which they appear.
-Precede the footnote with a horizontal rule of 2~inches
-(12~picas).\footnote{Sample of the second footnote}
-
-\subsection{Figures}
-
-All artwork must be neat, clean, and legible. Lines should be dark
-enough for purposes of reproduction; art work should not be
-hand-drawn. The figure number and caption always appear after the
-figure. Place one line space before the figure caption, and one line
-space after the figure. The figure caption is lower case (except for
-first word and proper nouns); figures are numbered consecutively.
-
-Make sure the figure caption does not get separated from the figure.
-Leave sufficient space to avoid splitting the figure and figure caption.
-
-You may use color figures.
-However, it is best for the
-figure captions and the paper body to make sense if the paper is printed
-either in black/white or in color.
-\begin{figure}[h]
-\begin{center}
-%\framebox[4.0in]{$\;$}
-\fbox{\rule[-.5cm]{0cm}{4cm} \rule[-.5cm]{4cm}{0cm}}
-\end{center}
-\caption{Sample figure caption.}
-\end{figure}
-
-\subsection{Tables}
-
-All tables must be centered, neat, clean and legible. Do not use hand-drawn
-tables. The table number and title always appear before the table. See
-Table~\ref{sample-table}.
-
-Place one line space before the table title, one line space after the table
-title, and one line space after the table. The table title must be lower case
-(except for first word and proper nouns); tables are numbered consecutively.
-
-\begin{table}[t]
-\caption{Sample table title}
-\label{sample-table}
-\begin{center}
-\begin{tabular}{ll}
-\multicolumn{1}{c}{\bf PART}  &\multicolumn{1}{c}{\bf DESCRIPTION}
-\\ \hline \\
-Dendrite         &Input terminal \\
-Axon             &Output terminal \\
-Soma             &Cell body (contains cell nucleus) \\
-\end{tabular}
-\end{center}
-\end{table}
-
-\section{Final instructions}
-Do not change any aspects of the formatting parameters in the style files.
-In particular, do not modify the width or length of the rectangle the text
-should fit into, and do not change font sizes (except perhaps in the
-\textbf{References} section; see below). Please note that pages should be
-numbered.
-
-\section{Preparing PostScript or PDF files}
-
-Please prepare PostScript or PDF files with paper size ``US Letter'', and
-not, for example, ``A4''. The -t
-letter option on dvips will produce US Letter files.
-
-Fonts were the main cause of problems in the past years. Your PDF file must
-only contain Type 1 or Embedded TrueType fonts. Here are a few instructions
-to achieve this.
-
-\begin{itemize}
-
-\item You can check which fonts a PDF files uses.  In Acrobat Reader,
-select the menu Files$>$Document Properties$>$Fonts and select Show All Fonts. You can
-also use the program \verb+pdffonts+ which comes with \verb+xpdf+ and is
-available out-of-the-box on most Linux machines.
-
-\item The IEEE has recommendations for generating PDF files whose fonts
-are also acceptable for NIPS. Please see
-\url{http://www.emfield.org/icuwb2010/downloads/IEEE-PDF-SpecV32.pdf}
-
-\item LaTeX users:
-
-\begin{itemize}
-
-\item Consider directly generating PDF files using \verb+pdflatex+
-(especially if you are a MiKTeX user).
-PDF figures must be substituted for EPS figures, however.
-
-\item Otherwise, please generate your PostScript and PDF files with the following commands:
-\begin{verbatim}
-dvips mypaper.dvi -t letter -Ppdf -G0 -o mypaper.ps
-ps2pdf mypaper.ps mypaper.pdf
-\end{verbatim}
-
-Check that the PDF files only contains Type 1 fonts.
-%For the final version, please send us both the Postscript file and
-%the PDF file.
-
-\item xfig "patterned" shapes are implemented with
-bitmap fonts.  Use "solid" shapes instead.
-\item The \verb+\bbold+ package almost always uses bitmap
-fonts.  You can try the equivalent AMS Fonts with command
-\begin{verbatim}
-\usepackage[psamsfonts]{amssymb}
-\end{verbatim}
- or use the following workaround for reals, natural and complex:
-\begin{verbatim}
-\newcommand{\RR}{I\!\!R} %real numbers
-\newcommand{\Nat}{I\!\!N} %natural numbers
-\newcommand{\CC}{I\!\!\!\!C} %complex numbers
-\end{verbatim}
-
-\item Sometimes the problematic fonts are used in figures
-included in LaTeX files. The ghostscript program \verb+eps2eps+ is the simplest
-way to clean such figures. For black and white figures, slightly better
-results can be achieved with program \verb+potrace+.
-\end{itemize}
-\item MSWord and Windows users (via PDF file):
-\begin{itemize}
-\item Install the Microsoft Save as PDF Office 2007 Add-in from
-\url{http://www.microsoft.com/downloads/details.aspx?displaylang=en\&familyid=4d951911-3e7e-4ae6-b059-a2e79ed87041}
-\item Select ``Save or Publish to PDF'' from the Office or File menu
-\end{itemize}
-\item MSWord and Mac OS X users (via PDF file):
-\begin{itemize}
-\item From the print menu, click the PDF drop-down box, and select ``Save
-as PDF...''
-\end{itemize}
-\item MSWord and Windows users (via PS file):
-\begin{itemize}
-\item To create a new printer
-on your computer, install the AdobePS printer driver and the Adobe Distiller PPD file from
-\url{http://www.adobe.com/support/downloads/detail.jsp?ftpID=204} {\it Note:} You must reboot your PC after installing the
-AdobePS driver for it to take effect.
-\item To produce the ps file, select ``Print'' from the MS app, choose
-the installed AdobePS printer, click on ``Properties'', click on ``Advanced.''
-\item Set ``TrueType Font'' to be ``Download as Softfont''
-\item Open the ``PostScript Options'' folder
-\item Select ``PostScript Output Option'' to be ``Optimize for Portability''
-\item Select ``TrueType Font Download Option'' to be ``Outline''
-\item Select ``Send PostScript Error Handler'' to be ``No''
-\item Click ``OK'' three times, print your file.
-\item Now, use Adobe Acrobat Distiller or ps2pdf to create a PDF file from
-the PS file. In Acrobat, check the option ``Embed all fonts'' if
-applicable.
-\end{itemize}
-
-\end{itemize}
-If your file contains Type 3 fonts or non embedded TrueType fonts, we will
-ask you to fix it.
-
-\subsection{Margins in LaTeX}
-
-Most of the margin problems come from figures positioned by hand using
-\verb+\special+ or other commands. We suggest using the command
-\verb+\includegraphics+
-from the graphicx package. Always specify the figure width as a multiple of
-the line width as in the example below using .eps graphics
-\begin{verbatim}
-   \usepackage[dvips]{graphicx} ...
-   \includegraphics[width=0.8\linewidth]{myfile.eps}
-\end{verbatim}
-or % Apr 2009 addition
-\begin{verbatim}
-   \usepackage[pdftex]{graphicx} ...
-   \includegraphics[width=0.8\linewidth]{myfile.pdf}
-\end{verbatim}
-for .pdf graphics.
-See section 4.4 in the graphics bundle documentation (\url{http://www.ctan.org/tex-archive/macros/latex/required/graphics/grfguide.ps})
-
-A number of width problems arise when LaTeX cannot properly hyphenate a
-line. Please give LaTeX hyphenation hints using the \verb+\-+ command.
-
-
-\subsubsection*{Acknowledgments}
-
-Use unnumbered third level headings for the acknowledgments. All
-acknowledgments go at the end of the paper. Do not include
-acknowledgments in the anonymized submission, only in the
-final paper.
-
-\subsubsection*{References}
-
-References follow the acknowledgments. Use unnumbered third level heading for
-the references. Any choice of citation style is acceptable as long as you are
-consistent. It is permissible to reduce the font size to `small' (9-point)
-when listing the references. {\bf Remember that this year you can use
-a ninth page as long as it contains \emph{only} cited references.}
-
+\section{References}
 \small{
+Glorot, X., \& Bengio, Y. (2010). Understanding the difficulty of training deep feedforward neural networks. \textit{In International conference on artificial intelligence and statistics} (pp. 249-256).
 }
 
 \end{document}
