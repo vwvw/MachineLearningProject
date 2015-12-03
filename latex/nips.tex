@@ -58,19 +58,16 @@ In this midway report, we managed to use a $k$th nearest neighbour classifier to
 
 \section{Introduction}
 
-For this project, we aim to classify CIFAR-10 images dataset - a collection of 10000 32$\x$32 images, into one of ten categories, as per project requirements,
-our classifiers are trained solely on a subset of 5000 CIFAR-10 images provided to us as \code{subset_CIFAR10}. As of this midway report, we have explored many
-classifiers, including Na\"ive Bayes, logistic regression, neural network, deep neural network, convolutional neural network, and $k$th nearest neighbour. Due
-to the complicated nature of neural networks, we have not yet found a set of satisfactory parameters that would give a decent output. However, we were able to
+For this project, we aim to classify CIFAR-10 images dataset - a collection of 10000 32$\x$32 images, into one of ten categories. As per project requirements, our classifiers are trained solely on a subset of 5000 CIFAR-10 images provided to us as \code{subset_CIFAR10}. As of this midway report, we have explored many classifiers, including Na\"ive Bayes, logistic regression, neural network, deep neural network, convolutional neural network, and $k$th nearest neighbour. Due to the complicated nature of neural networks, we have not yet found a set of satisfactory parameters that would give a decent output. However, we were able to
 produce a $k$th nearest neighbour classifier with an accuracy of $53\%$\footnote{This classifier ran for 194 seconds on a local machine with a 2.4 GHz quad-core
-processor. The classifier was highly parallelised, utilising \code{parfor} with 4 worker threads. The 53\% accuracy was tested on \code{test_batch.mat} from 
+processor. The computation was highly parallel, utilising \code{parfor} with 4 worker threads. The 53\% accuracy was tested on \code{test_batch.mat} from 
 CIFAR-10 dataset.}
 
 \subsection{Motivation}
 
 We decided to focus primarily on neural networks due to its ability to model many abstract concepts, and neural networks, especially convolution neural networks (CNN), such as LeNet,
 has seen great success in the area of image recognition. Our goal for this project is to implement a working CNN to classify the given dataset. However, in doing so, we would have 
-to face many challenges, including initialisation of values, performing back-propagation on convolutional and pooling layers, and find the optimal set of parameters for optimal
+to face many challenges, including initialisation of values, performing back-propagation on convolution and pooling layers, and find the optimal set of parameters for optimal
 performance.
 
 \subsection{Background and Related Work}
@@ -92,17 +89,16 @@ $$\prob{Y|X}$$
 with the assumption that
 $$\forall i,j,  i\neq j \cdot \prob{X_i|X_j, Y}=\prob{X_i|Y}$$
 In other words, it assumes that all input features are conditionally independent of each other given the prior. However, in the case of image classification, this assumption does
-not hold very well, as in a normal image, the intensity or colour of a pixel will depend on the intensities and colours of neighbouring pixels. Therefore, using raw pixel values (both 
-RGB and HSV\footnote{Hue, Saturation and Value. This colour space separates the hue, or colour from its intensity and brightness, and we can treat the three values as essentially independent of each other.}), we were only able to achieve around $30\%$ classification accuracy. Using histogram of oriented gradients improved the classification accuracy to $48.7\%$. However, we
+not hold very well, as in a normal image, the intensity or colour of a pixel will depend on the intensities and colours of neighbouring pixels. Therefore, using raw pixel values (both RGB and HSV\footnote{Hue, Saturation and Value. This colour space separates the hue, or colour from its intensity and brightness, and we can treat the three values as essentially independent of each other.}), we were only able to achieve around $30\%$ classification accuracy. Using histogram of oriented gradients improved the classification accuracy to $48.7\%$. However, we
 were unable to improve on the classification accuracy. We did attempt to change the \code{cell_size} parameter, however, we found that at higher values, it leads to overfitting, and
 at lower levels, it reduces classification accuracy.
 
 The classifier was implemented as Gaussian features each with a mean and variance estimate. Log likelihood was used to avoid floating-point underflow. However, other posterior distributions could also be considered, such as Beta in case of pixel values.
 
 \subsubsection{Neural Network}
-Most of our time was focused on attempting to produce a useable classifier using a neural network. We implemented three variants of neural networks, a simple neural network with 1 hidden layer, a deep neural network with multiple hidden layers of the same size, and a convolutional neural network with one convolutional layer, one pooling layer and a fully connected layer.
+Most of our time was focused on attempting to produce a usable classifier using a neural network. We implemented three variants of neural networks, a simple neural network with 1 hidden layer, a deep neural network with multiple hidden layers of the same size, and a convolutional neural network with one convolution layer, one pooling layer and a fully connected layer.
 
-For all of our neural network layers (other than the convolutional and pooling layers), the activation function is given as
+For all of our neural network layers (other than the convolution and pooling layers), the activation function is given as
 $$o = \frac{1}{1+e^{-X\cdot W}}$$
 where $o$ is the output, and $X$ is the input layer and $W$ is the associated weight, which we then initialised using Xavier initialisation discussed earlier and trained using back-propagation.
 We also used entropy as objective function, where
@@ -143,21 +139,21 @@ We have attempted to extract different features from the image in order to reduc
 We have trained some classifier with the raw pixel value, both RGB, HSV and intensity. Until now we did not get a good result. However, we are hopeful that a well-trained convolutional neural network would be able to produce reasonable results with raw pixel values.
 
 \subsubsection{Dominant Colour}
-We noticed that some colours in the image only appears on specific classes, such as red, thus we theorised that dominant colours could aid us in classification. To obtain it, we applied a blur to the image to smooth the colour. To extract the dominant color, we sampled the image every 4 pixels and compared the colour sampled to every pixel in the image, counting how many pixels are in a certain range of the sampled color.
+We noticed that some colours in the image only appears on specific classes, such as red, thus we theorised that dominant colours could aid us in classification. To obtain it, we applied a blur to the image to smooth the colour. To extract the dominant colour, we sampled the image every 4 pixels and compared the colour sampled to every pixel in the image, counting how many pixels are in a certain range of the sampled colour.
 
 We sample every four pixels to spare some computations. Since we are trying to find the dominant colour, it's quite certain that even looking to only one fourth of the pixel we will encounter the most dominant colour. We also check that the colour picked is not the already dominant colour. The range is 100 and is the sum of the differences between the R, G and B values. 
 
 \subsubsection{Edge detection}
+Edge in an image can help us see the border of an object. We have also noticed that certain objects have different types of edges (like straight edges in case of man-made object, or a round edges representing the tire of a car or a truck).
 We apply a simple Sobel algorithm on the grayscale image. We have also implemented an edge detection on the different R, G and B channels and then regroup the different edges. This give us an interesting result, some edges appear only in some color channel (like between a blue sky and a blue sea, the blue channel would not give us any result but the red channel can). Comparing it with the grayscale edge detection give also some feedback.
 
 \subsubsection{Horizontal Line}
-
 We also tried to find an horizontal edge in the image. This could mean an horizon (like in the case of a ship at sea) or a straight horizontal line (for example a photo of a truck sideways). To extract this feature, we first applied the Sobel algorithm to the image with reasonable threshold (0.14 in this case). Then we went trough the lines of the image and counted how many pixel were on the line, just above or just below and are marked as edges. A higher number represent lot of edges in the same horizontal area. 
 
 To counter the case were we would just had a lot of edges but not specially in a horizontal shape and not give a higher score with an image with fewer pixel marked as edges but all in an horizontal line, we subtract to the highest number we found, the 4th highest number. That means, we take the group of 3 lines with the maximum of pixel denoted as edges and decrease this value by the number of pixel denoted as edges in another group of 3 lines. Therefore, if the image has lot of pixel marked as edges but not particularly in a horizontal line, the score would be much nearer to zero. 
 
 \subsubsection{Histogram of Oriented Gradients}
-We have also used VLFeat to extract the Histogram of oriented gradients (HOG).
+We have also used VLFeat\footnote{http://www.vlfeat.org} to extract the Histogram of oriented gradients (HOG).
 We are still trying to adjust the cell size to match at best our classifier without timing out. 
 The HOG values give us some insight on the edges as well as on color or intensity value of the image. Therefore it's a quite interesting feature that gave us some good result alone. 
 
@@ -171,13 +167,13 @@ For $k$th nearest neighbour, we would need to store the neighbours in a more org
 
 
 \section{Conclusion and Further Improvements}
-We will continue to improve our features extraction and make it match at best with our different classifiers. This can for example mean finding the good threshold for the edge detection or change the linearity of the score of the horizontal line feature. Our plans also include to try different combinations of features to get the best result without compromising some classifiers assumptions (like Na\"ive Bayes assumptions).
+We will continue to improve our features extraction and make it match at best with our different classifiers. This can for example mean finding the good threshold for the edge detection or change the linearity of the score of the horizontal line feature. We will transform our dominant color extraction to a $n$-dominant colors extraction. One of our goal is also to find a better distance metric in the RGB spectrum than the L1 norm. Our plans also include to try different combinations of features to get the best result without compromising some classifiers assumptions (like Na\"ive Bayes assumptions).
 
 We will try to use Scale-invariant feature transform (SIFT) to gain other insights into the image. In addition, we feel that a support-vector machine using SIFT as feature could yield a fairly decent classifier, and we would investigate into SVMs more.
 
-We would also like to learn and complete the implementation of neural networks, especially CNNs, and implement a effecient and fast back-propagation algorithm for the learning of these networks. We would also want to optimise the factors, such as filter size, pooling size, and number of convolutional layers, pooling layers and hidden layers in the fully connected stage, as well as learning parameters such as $\eta$ and $\alpha$. We would also like to investigate into how to implement and learn the bias related to convolutional layers and sigmoid layers.
+We would also like to learn and complete the implementation of neural networks, especially CNNs, and implement a efficient and fast back-propagation algorithm for the learning of these networks. We would also want to optimise the factors, such as filter size, pooling size, and number of convolutional layers, pooling layers and hidden layers in the fully connected stage, as well as learning parameters such as $\eta$ and $\alpha$. We would also like to investigate into how to implement and learn the bias related to convolutional layers and sigmoid layers.
 
-Lastly, we would like to optimise $k$NN to utilise more effecient data structures.
+Lastly, we would like to optimise $k$NN to utilise more efficient data structures. We will also try to turn our $k$NN in a Distance-Weighted $k$NN by deciding the label based on the distance to the sample and not only to the most occurrences in the $k$ nearest neighbour.
 
 
 
