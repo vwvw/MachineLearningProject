@@ -5,11 +5,11 @@ function [ feat ] = features( data )
     [n,~] = size(data);
     
     
-    hog = zeros(n, 7936);
+    hog = zeros(n, 496);
     
     for i=1:n
        image = single(getImage(data, i));
-       hog(i,:) = reshape(vl_hog(image, 2), 1, []);
+       hog(i,:) = reshape(vl_hog(image, 8), 1, []);
     end
 
     feat = hog;
