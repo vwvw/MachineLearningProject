@@ -1,4 +1,4 @@
-function [ data ] = cnnReshapeData( data_d, gpu_accel ) =
+function [ data ] = cnnReshapeData( data_d, gpu_accel ) 
 % Reshapes the data from a nx(32*32*3) matrix to a 32x32xn matrix
 
     [n,~] = size(data_d);

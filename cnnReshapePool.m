@@ -2,10 +2,10 @@ function [reshaped] = cnnReshapePool (poold, gpu_accel)
 
     [k,~,f,n] = size(poold);
     
-    reshaped = zeros(n, k*k*f);
-    
     if gpu_accel
-        reshaped = gpuArray(reshaped);
+        reshaped = zeros(n,k*k*f, 'gpuArray');
+    else
+        reshaped = zeros(n,k*k*f);
     end
     
     for i=1:n

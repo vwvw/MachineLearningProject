@@ -20,10 +20,10 @@ function [ convd ] = cnnConv (data, W, b, gpu_accel)
     
     convDim = m - k + 1;
     
-    convd = zeros(convDim, convDim, f, n);
-  
     if gpu_accel
-        convd = gpuArray(convd);
+        convd = zeros(convDim, convDim, f, n, 'gpuArray');
+    else
+        convd = zeros(convDim, convDim, f, n);
     end
     
     

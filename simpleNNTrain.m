@@ -1,19 +1,20 @@
-function [ w_i, w_o ] = simpleNNTrain( data, labels, lsize, hdim, rate, momentum, iter, rng)
+function [ w_i, w_o, b_i, b_o ] = simpleNNTrain( data, labels, lsize, hdim, rate, momentum, iter, rng)
 %NNTRAIN Summary of this function goes here
 %   Detailed explanation goes here
 
-
-
-
-
-
-    [n, dim] = size(data);
+    [~, dim] = size(data);
     
     % Initialise data
-    w_i = (rand(dim, hdim)-0.5)*20;
-    w_o = (rand(hdim, lsize)-0.5)*20;
-    dw_i_prev = zeros(dim, hdim);
-    dw_o_prev = zeros(hdim, lsize);
+    
+    % with Xavier initialisation
+    w_i = normrnd(0, sqrt(2/(dim)), dim, hdim);
+    w_o = normrnd(0, sqrt(2/(hdim)), hdim, lsize);
+    b_i = (rand-0.5)*20;
+    b_o = (rand-0.5)*20;
+    dw_i_prev = (zeros(dim, hdim));
+    dw_o_prev = (zeros(hdim, lsize));
+    %db_i_prev = 0;
+    %db_o_prev = 0;
     
     prev_error = -1;
     
@@ -21,7 +22,7 @@ function [ w_i, w_o ] = simpleNNTrain( data, labels, lsize, hdim, rate, momentum
     
     for i=1:iter
         %do classification
-        disp(['training (' num2str(i) ' out of ' num2str(iter) ')'])
+        %disp(['training (' num2str(i) ' out of ' num2str(iter) ')'])
         
         error = 0;
         
@@ -42,53 +43,33 @@ function [ w_i, w_o ] = simpleNNTrain( data, labels, lsize, hdim, rate, momentum
                 disp('----');
                 disp(t);
                 disp(['dimension mismatch: ' num2str(length(o_o)) '; ' num2str(length(t))]);
+                continue;
             end
                  
+            error = error + sum((t-o_o).^2);
+
             
-            error = error + sum(abs(t-o_o));
-            %{
-            d_k = zeros(1, lsize);
-            
-            for l=1:lsize
-               d_k(l) = o_k(l)*(1-o_k(l))*(t(l)-o_k(l)); 
-            end
-            
-            d_h = zeros(1, hdim);
-            for h=1:hdim
-                summ = 0;
-                for kk = 1:lsize
-                   summ = summ + w_o(h,kk) * d_k(kk);
-                end
-                d_h(h) = o_h(h)*(1-o_h(h))*summ;
-            end
-            %}
             d_o = o_o.* (1-o_o).* (t - o_o);
             d_i = o_i .* (1-o_i) .* (d_o * transpose(w_o));
-            %{
-            dw_i = zeros(dim, hdim);
-            dw_o = zeros(hdim, lsize);
+
             
-            for h=1:hdim
-                for kk=1:lsize
-                    dw_o(h,kk) = rate * d_k(kk) * o_h(h);
-                end
-                
-                for j=1:dim
-                    dw_i(j,h) = rate * d_h(h)*data(inst,j);
-                end
-            end
+            dw_i =  transpose(data(inst,:)) * d_i;
+            dw_o =  transpose(o_i) * d_o;
             
-            %}
-                    
             
-            dw_i = rate * transpose(data(inst,:)) * d_i;
-            dw_o = rate * transpose(o_i) * d_o;
+            w_i = w_i + rate *dw_i + momentum * dw_i_prev;
+            w_o = w_o + rate *dw_o + momentum * dw_o_prev;
+            %b_i = b_i + db_i + momentum * db_i_prev;
+            %b_o = b_o + db_o + momentum * db_o_prev;
             
-            w_i = w_i + dw_i + momentum * dw_i_prev;
-            w_o = w_o + dw_o + momentum * dw_o_prev;
+            
+            dw_i_prev = dw_i;
+            dw_o_prev = dw_o;
+            %db_i_prev = db_i;
+            %db_o_prev = db_o;
         end
         
-        disp(['L1 error: ' num2str(error)]);
+        %disp(['L1 error: ' num2str(error./length(rng))]);
         
         errors(i) = error;
         
@@ -101,8 +82,9 @@ function [ w_i, w_o ] = simpleNNTrain( data, labels, lsize, hdim, rate, momentum
             dw_o_prev = dw_o;
         end
     end
-    
-    plot(errors(1:i));
+    % errors = gather(errors);
+    disp (['error: ' num2str(errors(i))]);
+    % plot(errors(1:i));
     
 end
 

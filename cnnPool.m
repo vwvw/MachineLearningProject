@@ -5,10 +5,10 @@ function [poold] = cnnPool (convd, poolsize, gpu_accel)
     
     k = m/poolsize;
     
-    poold = zeros(k, k, F, N);
-    
     if gpu_accel
-        poold = gpuArray(zeros);
+        poold = zeros(k, k, F, N, 'gpuArray');
+    else
+        poold = zeros(k, k, F, N);
     end
     
     for n=1:N
