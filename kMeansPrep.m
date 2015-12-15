@@ -8,13 +8,14 @@ function [ ret ] = kMeansPrep( data )
     %hog = zeros(4,n);
     hog = zeros(x*y*z,n);
     domi = zeros(3,n);
-    parfor i=1:n
+    for i=1:n
        img = single(getImage(data, i));
        hog(:,i) = reshape(vl_hog(img, cell_size),[x*y*z,1]);
-       domi(:,i) = dominantColor(data,i)./200;
+       %domi(:,i) = dominantColor(data,i)./200;
        %hog(4,i) = 7 * edgeStrength( data, 'sobel', i );
     end
-    ret = [hog;domi];
+    %ret = [hog;domi];
+    ret = hog;
     disp('end of prep');
 end
 
