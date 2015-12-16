@@ -76,7 +76,12 @@ performance.
 \subsection{Background and Related Work}
 
 Xavier Glorot and Yoshua Bengio [1] noted that initialisation of neural network weights should be sampled from a distribution of mean 0 and variance $\frac{2}{n_{in}+n_{out}}$.
-Further research was done in attempt to understand convolutional neural networks in terms of concept and implementation.
+Further research was done in attempt to understand convolutional neural networks in terms of concept and implementation. Heaton noted that the following was to be considered when determining the size of hidden layers in a neural network [2]:
+\begin{itemize}
+  \item The number of hidden neurons should be between the size of the input layer and the size of the output layer.
+  \item The number of hidden neurons should be 2/3 the size of the input layer, plus the size of the output layer.
+  \item The number of hidden neurons should be less than twice the size of the input layer.
+\end{itemize}
 
 
 
@@ -103,7 +108,9 @@ The classifier was implemented as Gaussian features each with a mean and varianc
 Most of our time was focused on attempting to produce a useable classifier using a neural network. We implemented three variants of neural networks, a simple neural network with 1 hidden layer, a deep neural network with multiple hidden layers of the same size, and a convolutional neural network with one convolutional layer, one pooling layer and a fully connected layer.
 
 For all of our neural network layers (other than the convolutional and pooling layers), the activation function is given as
+
 $$o = \frac{1}{1+e^{-X\cdot W}}$$
+
 where $o$ is the output, and $X$ is the input layer and $W$ is the associated weight, which we then initialised using Xavier initialisation discussed earlier and trained using back-propagation.
 We also used entropy as objective function, where
 $$\delta_k = o_k(1-o_k)(t_k-o_k)$$
@@ -116,7 +123,10 @@ and
   $$E_2 = \summ{i}{}{(t_i-o_i)^2}$$
 Both these errors were only used once per epoch to test for convergence, which we defined as $E_{t}\geq E_{t-1}$.
 
-The performances for these networks were sub-par, the most success we had was a network with 17 hidden layers which had a classification accuracy of $13\%$. It was trained with stochastic gradient descent of batch sizes 5000, and learning rate $\eta=0.1$ and momentum $\alpha=0.95$.
+The final classifier we decided to implement consists of 496 input layers, each corresponding to a HOG feature (with a cell size of 8), 236 hidden layers and 10 output layers. The activation function for each of the hidden layers is as follows:
+  $$o = \frac{1}{1+e^{-(x\cdot w+b)}}$$
+where $w$ is the weight given to any of the $x$s, and $b$ is a scalar that indicate the bias of this neuron. Both $w$ and $b$ are learnt by stochastic gradient descent. with a learning rate $\eta=0.001$ and momentum $\alpha=0.8$.
+
 
 \subsubsection{$k$th Nearest Neighbour}
 Our final attempt at a classifier was to implement $k$th nearest neighbour with a image kernel. $k$th nearest neighbour seeks to find the, as the name suggest, $k$ nearest neighbours and obtain the mode label. We have tried a variety of input features with this algorithm, including dominant colour, scale-invariant feature transform (SIFT), and histogram of oriented gradients (HOG). For SIFT, the distance metric was to first perform \code{vl_ubcmatch} on test sample and neighbour, and order neighbours by number of matches and then by sum of distance, so suppose that
@@ -168,6 +178,19 @@ For the neural networks, we were using stochastic gradient descent with batch si
 
 For $k$th nearest neighbour, we would need to store the neighbours in a more organised data structure instead of a list. The current $k$NN algorithm we have runs in $O(nd)$ work and $O(d)$ span, where $n$ is the number of test samples and $d$ is the number of training samples. However, with the implementation of a $k$-d tree data structure, we could lower the work and span bounds to $O(n\log d)$ and $O(\log d)$ respectively.
 
+\section{Experiments and Results}
+
+\subsection{Selection of Hidden Units in Neural Network}
+
+Our neural network classifier design used 496 input neurons as the result of a HOG feature with cell size 8, and 10 output neurons each representing the probability of classifying the image into one of the classes. The class picked is the class label with the highest probability, i.e. $\arg\max_i {x_i}$. To determine the optimal number of neurons in the hidden layer, we conformed to Heaton's suggestions [2] and trained 3 neural networks each with a number of hidden neurons ranging from 200 to 300, resulting in 300 different networks. Each of the networks is trained with a learning rate $\eta=0.001$ and momentum $\alpha=0.8$. For each network, we computed the training accuracy and test accuracy. Training accuracy was achieved by running the classifier on the 5000 given training samples, whereas test accuracy was achieved using the 10000-image \code{test_batch} in the CIFAR-10 dataset. We then plotted the $\max$ of both training and test accuracy\footnote{The classifiers with the $\max$ training and test accuracies are not necessarily the same ones.}. The results are shown in Figure 1. We have seen that the test accuracy is relatively consistent when the number of hidden neurons is between 200 to 260, however, as the number of neurons increases above 290, the chances for gradient descent to find a local minimum that is giving a baseline reading of 0.1\footnote{This baseline is simply classifying everything as one class (i.e. picking the most popular class label).} increases. However, it could also be that we are extremely unlucky in our simulation where none of the 3 initialisations gives the optimal result. running Matlab's \code{max} function on test accuracy gives the number of hidden neurons to be 236, which is the value we used as hidden layer. We noticed that for non-baseline classifiers, the training accuracy is significantly higher than test accuracy, and the training accuracy also fluctuates much greater than test accuracy. Hence, we conclude that a hidden layer of anywhere between 200-260 neurons could be optimal for our network.
+
+\begin{figure}
+\centering
+\includegraphics{fig1.png}
+\caption{The training and test errors for our neural network.}
+\end{figure}
+
+
 
 
 \section{Conclusion and Further Improvements}
@@ -184,6 +207,8 @@ Lastly, we would like to optimise $k$NN to utilise more effecient data structure
 \section{References}
 \small{
 Glorot, X., \& Bengio, Y. (2010). Understanding the difficulty of training deep feedforward neural networks. \textit{In International conference on artificial intelligence and statistics} (pp. 249-256).
+
+Heaton, J. (2008). \textit{Introduction to Neural Networks for Java} (2nd ed., pp. 158-159). St. Louis, Mo.: Heaton research.
 }
 
 \end{document}

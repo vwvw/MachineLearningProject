@@ -1,97 +1,107 @@
-function [ w_i, w, w_o ] = nnTrain( data, label, lsize, hdim, hlayers, rate, momentum, iter, rng)
+function [w, b] = nnTrain( data, labels, lsize, numHiddenLayers, rate, momentum, iter, rng)
 %NNTRAIN Summary of this function goes here
 %   Detailed explanation goes here
     [n, dim] = size(data);
     
-    % Initialise data
-    w = (rand(hdim, hdim, hlayers)-0.5) * 2;
-    w_i = (rand(dim, hdim)-0.5) * 2;
-    w_o = (rand(hdim, lsize)-0.5) * 2;
+    numLayers = numHiddenLayers + 2;
+    numTransitions = numLayers - 1;
     
-    prev_w = zeros(hdim, hdim, hlayers);
-    prev_w_i = zeros(dim, hdim);
-    prev_w_o = zeros(hdim, lsize);
+    interpolate = (dim - lsize)/numTransitions;
+    
+    numNeurons = zeros(1, numLayers);
+    numNeurons(1) = dim;
+    numNeurons(numLayers) = lsize;
+    
+    for i=1:numHiddenLayers
+        numNeurons(i+1) = floor(lsize + interpolate * (numLayers-i-1));
+    end
+    
+    numNeurons
+    
+    % initialise values
+    w = cell(1, numTransitions);
+    b = cell(1, numLayers);
+    dw_prev = cell(1, numTransitions);
+    db_prev = cell(1, numLayers);
+    
+    for i=1:numTransitions
+        w{i} = normrnd(0, sqrt(2/(numNeurons(i))), numNeurons(i), numNeurons(i+1));
+        dw_prev{i} = zeros(numNeurons(i), numNeurons(i+1));
+    end
+    
+    for i=1:numLayers
+        b{i} = normrnd(0, sqrt(2/numNeurons(i)), 1, numNeurons(i));
+        db_prev{i} = zeros(1, numNeurons(i));
+    end
     
     errors = zeros(1, iter);
-    prev_error = -1;
+    
+    % begin training
     for i=1:iter
         %do classification
-            
         disp(['training (' num2str(i) ' out of ' num2str(iter) ')'])
         
-        error = 0;
-        for k=permute(rng, randperm(length(rng)))  
-            %inst = randi([1 n]);
-            inst = k;
+        
+        for k=permute(rng, randperm(length(rng)))
             
-            o_i = nnLayer(w_i, data(inst,:));
+            output = cell(1, numLayers);
             
-            
-            o = zeros(hlayers, hdim);
-            for j=1:hlayers
-                if (j==1)
-                    o(j,:) = nnLayer(w(:,:,j),o_i);
-                else
-                    o(j,:) = nnLayer(w(:,:,j),o(j-1,:));
-                end
+            % forward
+            output{1} = data(k, :) ;%+ b{1};
+            for l=1:numTransitions
+               output{l+1} = nnLayer(w{l},output{l}, b{l+1});
             end
-            o_o = nnLayer(w_o,o(hlayers,:));
-        
-        
-            %train data
+            
+            % expected output
             t = zeros(1,lsize);
-            t(label(inst)+1) = 1;
-        
-            error = error + sum (abs(t-o_o));
+            t(labels(k)+1) = 1;
             
-            d_o = o_o.* (1-o_o).* (t - o_o);
-            
-            delta = zeros (hlayers, hdim);
-            
-            for j=hlayers:-1:1
-                if (j==hlayers)
-                    delta(j,:) = o(j,:) .* (1-o(j,:)) .* (d_o * transpose(w_o));
-                else
-                    delta(j,:) = o(j,:) .* (1-o(j,:)) .* (delta(j+1,:) * transpose(w(:,:,j+1)));
-                end
+            if(length(output{numLayers})~=lsize || length(t)~=lsize)
+                disp('dim mismatch');
+                disp(k);
+                disp('----');
+                disp(t);
+                disp(['dimension mismatch: ' num2str(length(o_o)) '; ' num2str(length(t))]);
+                continue;
             end
             
-            d_i = o_i .* (1-o_i) .* (delta(1,:) * transpose(w(:,:,1)));
+            errors(i) = errors(i) + sum((t-output{numLayers}).^2);
             
+            delta = cell(1, numLayers);
             
-            dw_i = rate * transpose(data(inst,:)) * d_i;
+            delta{numLayers} = output{numLayers} .* (1-output{numLayers}).* (t - output{numLayers});
             
-            dw_o = rate * transpose(o(hlayers,:)) * d_o;
-            
-            dw = zeros(hdim,hdim,hlayers);
-            
-            for j=1:hlayers
-                if(j==1)
-                    dw(:,:,j) = rate * transpose(o_i) * delta(j,:);
-                else
-                    dw(:,:,j) = rate * transpose(o(j-1,:))*delta(j,:);
-                end
+            for l=numTransitions:-1:1
+                delta{l} = output{l} .* (1-output{l}) .* (delta{l+1} * transpose(w{l}));
             end
-            w_i = w_i + dw_i + momentum * prev_w_i;
-            w_o = w_o + dw_o + momentum * prev_w_o;
-            w = w + dw + momentum * prev_w;
             
-            prev_w = dw;
-            prev_w_i = dw_i;
-            prev_w_o = dw_o;
+            dw = cell(1, numTransitions);
+            
+            for l=1:numTransitions
+               dw{l} = transpose(output{l}) * delta{l+1};
+               w{l} = w{l} + rate * dw{l} + momentum * dw_prev{l};
+            end
+            
+            
+            for l=1:numLayers
+               b{l} = b{l} + rate * delta{l} + momentum * db_prev{l};
+            end
+            
+            db_prev = delta;
+            dw_prev = dw;
         end
-         
-        disp(['L1 error: ' num2str(error)]);
         
-        errors(i) = error;
-        if(prev_error<error && prev_error>0)
-            disp(['converged.']);
-            break;
-        else
-            prev_error = error;
+        disp(['L2 error: ' num2str(errors(i)/length(rng))]);
+        
+        if((i>1) && (errors(i-1) <= errors(i)))
+           disp('converged.');
+           break;
         end
+        
     end
-
+    
+    
+    disp (['error: ' num2str(errors(i))]);
     plot(errors(1:i));
     
 end

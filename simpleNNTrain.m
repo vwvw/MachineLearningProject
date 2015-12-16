@@ -9,12 +9,12 @@ function [ w_i, w_o, b_i, b_o ] = simpleNNTrain( data, labels, lsize, hdim, rate
     % with Xavier initialisation
     w_i = normrnd(0, sqrt(2/(dim)), dim, hdim);
     w_o = normrnd(0, sqrt(2/(hdim)), hdim, lsize);
-    b_i = (rand-0.5)*20;
-    b_o = (rand-0.5)*20;
+    b_i = normrnd(0, sqrt(2/(dim)), 1, hdim);
+    b_o = normrnd(0, sqrt(2/(hdim)), 1, lsize);
     dw_i_prev = (zeros(dim, hdim));
     dw_o_prev = (zeros(hdim, lsize));
-    %db_i_prev = 0;
-    %db_o_prev = 0;
+    db_i_prev = zeros(1, hdim);
+    db_o_prev = zeros(1, lsize);
     
     prev_error = -1;
     
@@ -22,7 +22,7 @@ function [ w_i, w_o, b_i, b_o ] = simpleNNTrain( data, labels, lsize, hdim, rate
     
     for i=1:iter
         %do classification
-        %disp(['training (' num2str(i) ' out of ' num2str(iter) ')'])
+        disp(['training (' num2str(i) ' out of ' num2str(iter) ')'])
         
         error = 0;
         
@@ -30,8 +30,9 @@ function [ w_i, w_o, b_i, b_o ] = simpleNNTrain( data, labels, lsize, hdim, rate
             %inst = randi([1 n]);
             inst = k;
             
-            o_i = nnLayer(w_i, data(inst,:));
-            o_o = nnLayer(w_o, o_i);
+            
+            o_i = nnLayer(w_i, data(inst,:), b_i);
+            o_o = nnLayer(w_o, o_i, b_o);
             
             %train data
             t = zeros(1,lsize);
@@ -53,23 +54,25 @@ function [ w_i, w_o, b_i, b_o ] = simpleNNTrain( data, labels, lsize, hdim, rate
             d_i = o_i .* (1-o_i) .* (d_o * transpose(w_o));
 
             
-            dw_i =  transpose(data(inst,:)) * d_i;
-            dw_o =  transpose(o_i) * d_o;
+            dw_i = transpose(data(inst,:)) * d_i;
+            dw_o = transpose(o_i) * d_o;
+            db_o = d_o;
+            db_i = d_i;
             
             
             w_i = w_i + rate *dw_i + momentum * dw_i_prev;
             w_o = w_o + rate *dw_o + momentum * dw_o_prev;
-            %b_i = b_i + db_i + momentum * db_i_prev;
-            %b_o = b_o + db_o + momentum * db_o_prev;
+            b_i = b_i + rate *db_i + momentum * db_i_prev;
+            b_o = b_o + rate *db_o + momentum * db_o_prev;
             
             
             dw_i_prev = dw_i;
             dw_o_prev = dw_o;
-            %db_i_prev = db_i;
-            %db_o_prev = db_o;
+            db_i_prev = db_i;
+            db_o_prev = db_o;
         end
         
-        %disp(['L1 error: ' num2str(error./length(rng))]);
+        disp(['L1 error: ' num2str(error./length(rng))]);
         
         errors(i) = error;
         
@@ -84,7 +87,7 @@ function [ w_i, w_o, b_i, b_o ] = simpleNNTrain( data, labels, lsize, hdim, rate
     end
     % errors = gather(errors);
     disp (['error: ' num2str(errors(i))]);
-    % plot(errors(1:i));
+    plot(errors(1:i));
     
 end
 

@@ -22,16 +22,29 @@ function [ w, b, w_i, w_o ] = cnnTrain( ...
     convd = d-filtersize+1;
     k = convd/poolsize;
     
-    %% initialise weights
-    w = (rand(filtersize, filtersize, filternum)-0.5)*2;
-    b = (rand(filternum, 1)-0.5)*2;
-    w_i = (rand(k^2*filternum, hsize)-0.5)*2;
-    w_o = (rand(hsize, lsize)-0.5)*2;
+    %% initialise weights (Xavier initialisation)
+    % w = (rand(filtersize, filtersize, filternum)-0.5)*2;
+    % b = (rand(convd, convd, filternum)-0.5)*2;
+    
+    w = normrnd(0, sqrt(2/(filtersize^2*filternum)), filtersize, filtersize, filternum);
+    
+    %for i=1:filternum
+    %   w (:,:,filternum) = [-1, 0, 1;   -2, 0 2; -1, 0, 1]; 
+    %end
+    
+    b = normrnd(0, sqrt(2/(filtersize^2*filternum)), convd, convd, filternum);
+    %b = zeros(convd, convd, filternum);
+    w_i = normrnd(0, sqrt(2/(k^2*filternum)), k^2*filternum, hsize);
+    w_o = normrnd(0, sqrt(2/(hsize)), hsize, lsize);
+    b_i = normrnd(0, sqrt(2/(k^2*filternum)), 1, hsize);
+    b_o = normrnd(0, sqrt(2/(hsize)), 1, lsize);
     
     dw_old = zeros(size(w));
     db_old = zeros(size(b));
     dw_i_old = zeros(size(w_i));
     dw_o_old = zeros(size(w_o));
+    db_i_old = zeros(size(b_i));
+    db_o_old = zeros(size(b_o));
     
     errors = zeros(1, iter);
     
@@ -79,8 +92,10 @@ function [ w, b, w_i, w_o ] = cnnTrain( ...
             cnnConvOutput = cnnConv(data(:,:,i), w, b, gpu_accel);
             cnnPoolOutput = cnnPool(cnnConvOutput, poolsize, gpu_accel);
             nnInput = cnnReshapePool(cnnPoolOutput, gpu_accel);
-            nnHiddenOutput = nnLayer(w_i, nnInput);
-            nnOutput = nnLayer(w_o, nnHiddenOutput);
+
+            
+            nnHiddenOutput = nnLayer(w_i, nnInput, b_i);
+            nnOutput = nnLayer(w_o, nnHiddenOutput, b_o);
 
             
 
@@ -103,15 +118,19 @@ function [ w, b, w_i, w_o ] = cnnTrain( ...
                 dw(:,:,fn) = conv2(data(:,:,i), ...
                                    rot90(cnnConvDelta(:,:,fn),2), ...
                                    'valid');
-                db(fn) = sum(sum(cnnConvDelta(:,:,fn)));
+                db(:,:,fn) = cnnConvDelta(:,:,fn);
             end
             
             dw_o = transpose(nnHiddenOutput) * nnOutputDelta;
             dw_i = transpose(nnInput) * nnHiddenDelta;
+            db_o = nnOutputDelta;
+            db_i = nnHiddenDelta;
             
             %% gradient descent
             w = w + rate * dw + momentum * dw_old;
-            %b = b + rate * db + momentum * db_old;
+            b = b + rate * db + momentum * db_old;
+            b_i = b_i + rate * db_i + momentum * db_i_old;
+            b_o = b_o + rate * db_o + momentum * db_o_old;
             w_i = w_i + rate * dw_i + momentum * dw_i_old;
             w_o = w_o + rate * dw_o + momentum * dw_o_old;
             
@@ -121,19 +140,19 @@ function [ w, b, w_i, w_o ] = cnnTrain( ...
             dw_o_old = dw_o;
             
             %% error computation
-            errors(e) = errors(e) + sum(abs(labels(i,:)-nnOutput));
+            errors(e) = errors(e) + sum((labels(i,:)-nnOutput).^2);
             
             %t = toc;
             
             %disp([' training sample ran in ' num2str(t) ' seconds.']);
         end
         
-        disp (['L1 error: ' num2str(errors(e))]);
+        disp (['L1 error: ' num2str(errors(e)/5000)]);
         
-%         if e>1 && errors(e)>=errors(e-1)
-%             disp('converged.');
-%             break;
-%         end
+         if e>1 && errors(e)>=errors(e-1)
+             disp('converged.');
+             break;
+         end
     end
 
     if gpu_accel

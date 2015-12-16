@@ -1,9 +1,9 @@
-function [correctness, output] = correctness_tester(data, labels, w_in, w_out)
+function [correctness, output] = correctness_tester(data, labels, w_in, w_out, b_i, b_o)
     [n,~] = size(data);
     
     correctness = 0;
     
-    out = simpleNNClassify(data, w_in, w_out);
+    out = simpleNNClassify(data, w_in, w_out, repmat(b_i, n, 1), repmat(b_o, n, 1));
     
     output = zeros(n,1);
     

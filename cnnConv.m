@@ -31,7 +31,7 @@ function [ convd ] = cnnConv (data, W, b, gpu_accel)
        for j=1:f
            img = data(:,:,i);
            filter = rot90(W(:,:,j),2);
-           convd(:,:,j,i) = nnLayer(1, conv2(img, filter, 'valid')+b(j));
+           convd(:,:,j,i) = nnLayer(1, conv2(img, filter, 'valid'), b(j));
        end
     end
 
