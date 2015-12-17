@@ -6,7 +6,8 @@ function [ w, b, w_i, w_o ] = cnnTrain( ...
     filtersize, ...
     filternum, ...
     hsize, ...
-    rate, ...
+    ratei, ...
+    rated, ...
     momentum, ...
     iter, ...
     gpu_accel)
@@ -28,9 +29,9 @@ function [ w, b, w_i, w_o ] = cnnTrain( ...
     
     w = normrnd(0, sqrt(2/(filtersize^2*filternum)), filtersize, filtersize, filternum);
     
-    %for i=1:filternum
-    %   w (:,:,filternum) = [-1, 0, 1;   -2, 0 2; -1, 0, 1]; 
-    %end
+    for i=1:filternum
+       w (:,:,filternum) = [-1, 0, 1;   -2, 0 2; -1, 0, 1]; 
+    end
     
     b = normrnd(0, sqrt(2/(filtersize^2*filternum)), convd, convd, filternum);
     %b = zeros(convd, convd, filternum);
@@ -54,6 +55,7 @@ function [ w, b, w_i, w_o ] = cnnTrain( ...
     dw = zeros(size(w));
     db = zeros(size(b));
     cnnConvDelta = zeros(convd, convd, filternum);
+    rate = ratei;
 
     % cast to gpuArray as necessary
     if gpu_accel
@@ -73,6 +75,7 @@ function [ w, b, w_i, w_o ] = cnnTrain( ...
         w_o = gpuArray(w_o);
         errors = gpuArray(errors);
     end
+    num = 0;
     
     for e=1:iter
         errors(e) = 0;
@@ -89,7 +92,7 @@ function [ w, b, w_i, w_o ] = cnnTrain( ...
             %tic;
             
             %% forward propagation
-            cnnConvOutput = cnnConv(data(:,:,i), w, b, gpu_accel);
+            [cnnConvOutput, sigmv] = cnnConv(data(:,:,i), w, b, gpu_accel);
             cnnPoolOutput = cnnPool(cnnConvOutput, poolsize, gpu_accel);
             nnInput = cnnReshapePool(cnnPoolOutput, gpu_accel);
 
@@ -113,10 +116,18 @@ function [ w, b, w_i, w_o ] = cnnTrain( ...
                 
                 cnnConvDelta(:,:,fn) = (1/(poolsize^2))* ...
                     kron(cnnPoolDelta(:,:,fn), ones(poolsize));
+                
+                
+                cnnConvDelta(:,:,fn) = cnnConvOutput(:,:,fn) .* ...
+                   (1-cnnConvOutput(:,:,fn)) .* ...
+                   (cnnConvDelta(:,:,fn)*transpose(sigmv(:,:,fn))) ;
                                              
+               
             %% gradient computation
+           
+            
                 dw(:,:,fn) = conv2(data(:,:,i), ...
-                                   rot90(cnnConvDelta(:,:,fn),2), ...
+                                   cnnConvDelta(:,:,fn), ...
                                    'valid');
                 db(:,:,fn) = cnnConvDelta(:,:,fn);
             end
@@ -145,10 +156,15 @@ function [ w, b, w_i, w_o ] = cnnTrain( ...
             %t = toc;
             
             %disp([' training sample ran in ' num2str(t) ' seconds.']);
+            
+            rate = ratei/(i+num*rated);
+            num = num + 1;
+            % return
         end
         
-        disp (['L1 error: ' num2str(errors(e)/5000)]);
-        
+        disp(['New learning rate: ' num2str(rate)]);
+        disp (['L2 error: ' num2str(errors(e)/5000)]);
+        w(:,:,1)
          if e>1 && errors(e)>=errors(e-1)
              disp('converged.');
              break;

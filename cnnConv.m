@@ -1,4 +1,4 @@
-function [ convd ] = cnnConv (data, W, b, gpu_accel)
+function [ convd, sigmv ] = cnnConv (data, W, b, gpu_accel)
 % Performs a convolution layer on data given weight and bias.
 % If gpu_accel is not set, data, W, b are expected to be matrices,
 % convd is returned as a matrix.
@@ -22,16 +22,19 @@ function [ convd ] = cnnConv (data, W, b, gpu_accel)
     
     if gpu_accel
         convd = zeros(convDim, convDim, f, n, 'gpuArray');
+        sigmv = zeros(convDim, convDim, f, n, 'gpuArray');
     else
         convd = zeros(convDim, convDim, f, n);
+        sigmv = zeros(convDim, convDim, f, n);
     end
     
     
     for i=1:n
        for j=1:f
            img = data(:,:,i);
-           filter = rot90(W(:,:,j),2);
-           convd(:,:,j,i) = nnLayer(1, conv2(img, filter, 'valid'), b(j));
+           filter = W(:,:,j);
+           sigmv(:,:,j,i) = conv2(img, filter, 'valid');
+           convd(:,:,j,i) = nnLayer(1, sigmv(:,:,j,i), b(j));
        end
     end
 

@@ -1,4 +1,4 @@
-function [ output ] = classify( Model, X )
+function [ output ] = classify2( Model, X )
 %Using the model trained in train.m to classify the image of X
 
 %model contain w_in in the first column and v_out in the second column

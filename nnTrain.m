@@ -1,4 +1,4 @@
-function [w, b] = nnTrain( data, labels, lsize, numHiddenLayers, rate, momentum, iter, rng)
+function [w, b] = nnTrain( data, labels, lsize, numHiddenLayers, ratei, rated, momentum, iter, rng)
 %NNTRAIN Summary of this function goes here
 %   Detailed explanation goes here
     [n, dim] = size(data);
@@ -35,7 +35,7 @@ function [w, b] = nnTrain( data, labels, lsize, numHiddenLayers, rate, momentum,
     end
     
     errors = zeros(1, iter);
-    
+    num = 0;
     % begin training
     for i=1:iter
         %do classification
@@ -43,6 +43,9 @@ function [w, b] = nnTrain( data, labels, lsize, numHiddenLayers, rate, momentum,
         
         
         for k=permute(rng, randperm(length(rng)))
+            
+            rate = ratei/(1+num*rated);
+            num = num+1;
             
             output = cell(1, numLayers);
             
