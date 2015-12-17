@@ -80,10 +80,21 @@ Further research was done in attempt to understand convolutional neural networks
   \item The number of hidden neurons should be less than twice the size of the input layer.
 \end{itemize}
 
+\subsection{Dataset}
+CIFAR-10 is a labeled subset of the 80 million tiny images [4]. The training data is a random subset of CIFAR-10 which contains 5000 labeled color images (size of 32*32*3) balanced in 10 different classes, while the test set is a random subset of an unknown number of images without disclosure of their labels. After the classification model is well trained with appropriate parameters, it will be used for testing set in order to generate predicting labels. Below is a random sample from the CIFAR-10 with 10 random images from each class [4].
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.55]{data.jpg}
+\caption{A sample of images in 10 different classes. }
+\end{figure}
 
 
 \section{Method}
 Methodology is further broken down into three parts, classifiers, feature selection and training.
+
+
+
 
 \subsection{Classifiers}
 We have attempted and tried various supervised learning algorithms, some with more success than others.
@@ -120,6 +131,13 @@ and
   $$E_2 = \summ{i}{}{(t_i-o_i)^2}$$
 Both these errors were only used once per epoch to test for convergence, which we defined as $E_{t}\geq E_{t-1}$.
 
+\begin{figure}
+\centering
+\includegraphics[scale=0.55]{MSENN.jpg}
+\caption{Evolution of the error ($E_2$) during training. }
+\end{figure}
+
+
 The final classifier we decided to implement consists of 496 input layers, each corresponding to a HOG feature (with a cell size of 8), 236 hidden layers and 10 output layers. The activation function for each of the hidden layers is as follows:
   $$o = \frac{1}{1+e^{-(x\cdot w+b)}}$$
 where $w$ is the weight given to any of the $x$s, and $b$ is a scalar that indicate the bias of this neuron. Both $w$ and $b$ are learnt by stochastic gradient descent. with a learning rate $\eta=0.001$ and momentum $\alpha=0.8$.
@@ -144,11 +162,11 @@ For the midway report, we were not able to respect the maximum of running time o
 Our improvements for  $k$ nearest neighbour consist mostly of implementing a datastructure known as $kd$-tree (k-dimensional tree). This datastructure is a space partitioning datastructure. It is similar in the form to a binary tree. Each node that is not part of the leafs represent an hyperplane in a particular dimension cutting a subspace in two. Each level of the $kd$-tree is another dimension above the previous one. The root level representing dimension one. Since we use hog, our data still have a really high number of features and we don't use each feature as a dimension. 
 
 
-The interest of $kd$-tree come from the fact that while searching for the $k$ nearest neighbour, the datastructure let us discard half the points if the distance between the actual furthest neighbour and the point is smaller than the distance from the hyperplane to the point. The justification is easy to see on a figure: if the furthest neighbour actually found is on the same side of the hyperplane than the point, there is no need to look at the other side of the hyperplane (see Figure 1.).
+The interest of $kd$-tree come from the fact that while searching for the $k$ nearest neighbour, the datastructure let us discard half the points if the distance between the actual furthest neighbour and the point is smaller than the distance from the hyperplane to the point. The justification is easy to see on a figure: if the furthest neighbour actually found is on the same side of the hyperplane than the point, there is no need to look at the other side of the hyperplane (see Figure 3.).
 \begin{figure}
 \centering
-\includegraphics{3dtree.png}
-\caption{Representation of a $3$d-tree. First split in red, second in green and third in blue.}
+\includegraphics[scale=0.8]{3dtree.png}
+\caption{Representation of a $3$d-tree. First split in red, second in green and third in blue. [5]}
 \end{figure}
 Because the relative slow classification come form the number of comparison to do between each points to find the nearest neighbours, being able to reduce the size of the set of points is an interesting speed up. The implementation of the $kd$-tree is done using the \code{struct} elements in Matlab. 
 
@@ -158,8 +176,29 @@ We also had to implement a bounded priority queue keep track of the nearest neig
 
 
 
-\subsubsection{Logistic Regression}
+\subsubsection{Deep Neural Network}
 
+The last classifier we used is a Deep Neural Network. A Deep Neural Network or DDN for short is a neural network with multiple layers allowing this way to model and classify more abstract data. 
+
+As for Neural Netwrok, we used the $L_2$ error to test our convergence.
+ $$L_2 = \summ{i}{}{(t_i-o_i)^2}$$
+
+One trick that we used to train our Deep Neural Network is Learning rate decay. Decreasing the learning rate trough time help us in multiple way. First, if the learning rate is constant and big, we will never converge. Conversely, if the learning rate it too small, we can get stuck in a local minima in addition to the fact that the learning will be really slow. Using a learning rate depending on the iteration number let us counter this two risks.
+As recommend by Samy Bengio [3], we used this decay function:
+
+$$\eta(s)=\dfrac{\eta_0}{(1+\eta_d*s)}$$ 
+where $\eta_0$ is the initial learning rate and $\eta_d$ is the rate at which the learning rate decay. 
+We choose an $\eta_0 = 1$ and an $\eta_d = 0.1$.
+
+For this classifier we ended up choosing to use 3 hidden layers, each composed respectively of $374, 253, 131$ neurons. The output layer output the number of class and therefore contains 10 neurons. The input layer is composed of 496 layers since we used a size of cell of 8 in the computation of the HOG value. 
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.55]{ErrorDNN.png}
+\caption{Evolution of the number of error on a dataset of 5000 images until the DNN reach convergence. }
+\end{figure}
+
+Our classifier converges in approximately 35 steps with an $L_2$ error in the region of $45\%$.
 
 \subsection{Features Extraction}
 We have attempted to extract different features from the image in order to reduce noise in the data.
@@ -171,6 +210,8 @@ We have trained some classifier with the raw pixel value, both RGB, HSV and inte
 We noticed that some colours in the image only appears on specific classes, such as red, thus we theorised that dominant colours could aid us in classification. To obtain it, we applied a blur to the image to smooth the colour. To extract the dominant color, we sampled the image every 4 pixels and compared the colour sampled to every pixel in the image, counting how many pixels are in a certain range of the sampled color.
 
 We sample every four pixels to spare some computations. Since we are trying to find the dominant colour, it's quite certain that even looking to only one fourth of the pixel we will encounter the most dominant colour. We also check that the colour picked is not the already dominant colour. The range is 100 and is the sum of the differences between the R, G and B values. 
+
+Sadly, we didn't had time to optimize this feature detection enough so that it run in a decent time. Therefore we were not able to use it on Autolab for the submission of this report.
 
 \subsubsection{Edge detection}
 We apply a simple Sobel algorithm on the grayscale image. We have also implemented an edge detection on the different R, G and B channels and then regroup the different edges. This give us an interesting result, some edges appear only in some color channel (like between a blue sky and a blue sea, the blue channel would not give us any result but the red channel can). Comparing it with the grayscale edge detection give also some feedback.
@@ -189,32 +230,28 @@ The HOG values give us some insight on the edges as well as on color or intensit
 \subsection{Training}
 We have also attempted various methods of training the different classifiers. For Na\"ive Bayes, we used MLE log likelihood with Gaussian likelihoods. However, if we were to use feature values that which are bounded in one end or two, other distributions, such as Gamma or Beta could prove to be more useful. We could also use semi-supervised learning and boosting to boost the performance of Na\"ive Bayes classifier.
 
-For the neural networks, we were using stochastic gradient descent with batch sizes of 5000. We added a momentum factor as our classifier was often getting stuck at local optima - it found a minima where it gives the same classification to all images, and could not move past that point. There is obviously much to learn and research about neural networks.
-
-For $k$th nearest neighbour, we would need to store the neighbours in a more organised data structure instead of a list. The current $k$NN algorithm we have runs in $O(nd)$ work and $O(d)$ span, where $n$ is the number of test samples and $d$ is the number of training samples. However, with the implementation of a $k$-d tree data structure, we could lower the work and span bounds to $O(n\log d)$ and $O(\log d)$ respectively.
-
 \section{Experiments and Results}
 
 \subsection{Selection of Hidden Units in Neural Network}
 
-Our neural network classifier design used 496 input neurons as the result of a HOG feature with cell size 8, and 10 output neurons each representing the probability of classifying the image into one of the classes. The class picked is the class label with the highest probability, i.e. $\arg\max_i {x_i}$. To determine the optimal number of neurons in the hidden layer, we conformed to Heaton's suggestions [2] and trained 3 neural networks each with a number of hidden neurons ranging from 200 to 300, resulting in 300 different networks. Each of the networks is trained with a learning rate $\eta=0.001$ and momentum $\alpha=0.8$. For each network, we computed the training accuracy and test accuracy. Training accuracy was achieved by running the classifier on the 5000 given training samples, whereas test accuracy was achieved using the 10000-image \code{test_batch} in the CIFAR-10 dataset. We then plotted the $\max$ of both training and test accuracy\footnote{The classifiers with the $\max$ training and test accuracies are not necessarily the same ones.}. The results are shown in Figure 2. We have seen that the test accuracy is relatively consistent when the number of hidden neurons is between 200 to 260, however, as the number of neurons increases above 290, the chances for gradient descent to find a local minimum that is giving a baseline reading of 0.1\footnote{This baseline is simply classifying everything as one class (i.e. picking the most popular class label).} increases. However, it could also be that we are extremely unlucky in our simulation where none of the 3 initialisations gives the optimal result. running Matlab's \code{max} function on test accuracy gives the number of hidden neurons to be 236, which is the value we used as hidden layer. We noticed that for non-baseline classifiers, the training accuracy is significantly higher than test accuracy, and the training accuracy also fluctuates much greater than test accuracy. Hence, we conclude that a hidden layer of anywhere between 200-260 neurons could be optimal for our network.
+Our neural network classifier design used 496 input neurons as the result of a HOG feature with cell size 8, and 10 output neurons each representing the probability of classifying the image into one of the classes. The class picked is the class label with the highest probability, i.e. $\arg\max_i {x_i}$. To determine the optimal number of neurons in the hidden layer, we conformed to Heaton's suggestions [2] and trained 3 neural networks each with a number of hidden neurons ranging from 200 to 300, resulting in 300 different networks. Each of the networks is trained with a learning rate $\eta=0.001$ and momentum $\alpha=0.8$. For each network, we computed the training accuracy and test accuracy. Training accuracy was achieved by running the classifier on the 5000 given training samples, whereas test accuracy was achieved using the 10000-image \code{test_batch} in the CIFAR-10 dataset. We then plotted the $\max$ of both training and test accuracy\footnote{The classifiers with the $\max$ training and test accuracies are not necessarily the same ones.}. The results are shown in Figure 5. We have seen that the test accuracy is relatively consistent when the number of hidden neurons is between 200 to 260, however, as the number of neurons increases above 290, the chances for gradient descent to find a local minimum that is giving a baseline reading of 0.1\footnote{This baseline is simply classifying everything as one class (i.e. picking the most popular class label).} increases. However, it could also be that we are extremely unlucky in our simulation where none of the 3 initialisations gives the optimal result. running Matlab's \code{max} function on test accuracy gives the number of hidden neurons to be 236, which is the value we used as hidden layer. We noticed that for non-baseline classifiers, the training accuracy is significantly higher than test accuracy, and the training accuracy also fluctuates much greater than test accuracy. Hence, we conclude that a hidden layer of anywhere between 200-260 neurons could be optimal for our network.
 
 \begin{figure}
 \centering
-\includegraphics{fig1.png}
+\includegraphics[scale=0.65]{fig1.png}
 \caption{The training and test errors for our neural network.}
 \end{figure}
 
-\subsection{Selection of the number of Nearest Neighbour}
+\subsection{Choosing $k$ in $k$-Nearest Neighbour}
 
 The choice of $k$ in $k$ th nearest neighbour is an important point for this algorithm. A small k, means our algorithm will be much more influenced by noise or small variation in the data. Conversely, a big $k$ will not be much influenced by the noise but also weaken our hypothesis that points near each other have the same labels. In addition to that, a bigger $k$ will slow down our algorithm since we will have to look at more neighbours before being able to use the properties of our $kd$ tree. A widely spread rule of thumb on internet and in the literature is that  $\sqrt[2]{N}$ (where N is the number of class) is a good choice but not always optimal. 
-We have experimented our $k$ nearest neighbour algorithm with different value of $k$ using leave-one-out cross validation. As we can see in Figure 3. The optimal k for our dataset $k$ is around 7. 
+We have experimented our $k$ nearest neighbour algorithm with different value of $k$ using leave-one-out cross validation. As we can see in Figure 6. The optimal k for our dataset $k$ is around 7. 
 We can clearly see a increase in the error rate when we have a much higher $k$ meaning that we include a too big region and some points in the border will be misclassified. 
 
 
 \begin{figure}
 \centering
-\includegraphics{kChoice.png}
+\includegraphics[scale=0.5]{kChoice.png}
 \caption{The number of neighbour and the test error. }
 \end{figure}
 
@@ -224,21 +261,37 @@ We can clearly see a increase in the error rate when we have a much higher $k$ m
 
 
 \section{Conclusion and Further Improvements}
-We will continue to improve our features extraction and make it match at best with our different classifiers. This can for example mean finding the good threshold for the edge detection or change the linearity of the score of the horizontal line feature. Our plans also include to try different combinations of features to get the best result without compromising some classifiers assumptions (like Na\"ive Bayes assumptions).
 
-We will try to use Scale-invariant feature transform (SIFT) to gain other insights into the image. In addition, we feel that a support-vector machine using SIFT as feature could yield a fairly decent classifier, and we would investigate into SVMs more.
+Even if we are far from the smallest error rate achieved in the literature or in the class, we were able to fulfill the requirements of this project. Even if it was not always easy and  we went trough a lot of different classifiers, we were able to achieve above baseline ($48.7\%$) classification for three of them.
 
-We would also like to learn and complete the implementation of neural networks, especially CNNs, and implement a effecient and fast back-propagation algorithm for the learning of these networks. We would also want to optimise the factors, such as filter size, pooling size, and number of convolutional layers, pooling layers and hidden layers in the fully connected stage, as well as learning parameters such as $\eta$ and $\alpha$. We would also like to investigate into how to implement and learn the bias related to convolutional layers and sigmoid layers.
+Our classifiers endured important changes and improvements since from the midway report. We went from having only one classifier working too slowly, to three fully functional decent classifiers.
 
-Lastly, we would like to optimise $k$NN to utilise more effecient data structures.
+The use of a special datastructure for $k$ nearest neighbour was necessary and brought the speed-up expected. Even with this improvement, $k$ nearest neighbour is still very slow for the classification in comparison to other classifiers. Therefore, if we need to classify regularly new images or a higher number of images, we would investigate some other classifiers.
+
+We didn't spend a lot of time trying to counter overfitting. This would probably be an interesting track to follow to improve even more our classifiers. 
+
+Our features extractions were usable but far from excellent. It was difficult to assign a good output value, consistent with the other features. The use of VLFeat really helped and if we would had to improve our project further we would look to more complex features extraction reposing on strong theory basis. 
+
+One of our failure was bringing convolutionnal neural network to work completely. Even with the long time we spent working on this classifier we were not able to find the combination of parameters to get a decent result. We are confident that with more time we would have brought this classifier to work and probably achieved a really good score as other implementations testifies.
+
+We would have like to improve our Deep Neural Network by replacing the output layer that just take the maximum by a Support Vector Machine or a Mixture Model. 
+
 
 
 
 \section{References}
 \small{
-Glorot, X., \& Bengio, Y. (2010). Understanding the difficulty of training deep feedforward neural networks. \textit{In International conference on artificial intelligence and statistics} (pp. 249-256).
+[1] Glorot, X., \& Bengio, Y. (2010). Understanding the difficulty of training deep feedforward neural networks. \textit{In International conference on artificial intelligence and statistics} (pp. 249-256).
 
-Heaton, J. (2008). \textit{Introduction to Neural Networks for Java} (2nd ed., pp. 158-159). St. Louis, Mo.: Heaton research.
+[2] Heaton, J. (2008). \textit{Introduction to Neural Networks for Java} (2nd ed., pp. 158-159). St. Louis, Mo.: Heaton research.
+
+
+[3] Bengio, S. (2003). \textit{An Introduction to Statistical Machine Learning - Neural Networks -} (slides 32) Martigny, CH.: Dalle Molle Institute for Perceptual Artificial Intelligence (IDIAP)
+
+[4] Alex, K. (2009). \textit{Learning multiple layers of features from tiny images}
+
+[5] Wikimedia.org. \url{https://commons.wikimedia.org/wiki/File:3dtree.png}
 }
+
 
 \end{document}
