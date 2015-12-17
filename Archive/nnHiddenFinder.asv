@@ -1,0 +1,23 @@
+function [tr, te] = nnHiddenFinder(feat_train, labels_train, feat_test, labels_test)
+
+    trainingAccuracy = zeros(1000, 1);
+    testAccuracy = zeros(1000, 1);
+
+    rate = 0.0001;
+    momentum = 0.8;
+    sampleRange = 1:5000;
+
+    parfor i = 2000:2999
+        disp(['nHidden=' num2str(floor(i/10)) ' iter=' num2str(mod(i,10)) ' started']);
+        
+        %[a,b] = simpleNNTrain(feat_train, labels_train, 10, floor(i/10), rate, momentum, 1000, sampleRange);
+        
+        [testAccuracy(i-1999),~] = correctness_tester(feat_test, labels_test, a, b);
+        %[trainingAccuracy(i-1999),~] = correctness_tester(feat_train, labels_train, a, b);
+        disp(['nHidden=' num2str(floor(i/10)) ' iter=' num2str(mod(i,10)) ' finished']);
+    end
+    
+    tr = reshape(trainingAccuracy, 10, 100);
+    te = reshape(testAccuracy, 10, 100);
+end
+
