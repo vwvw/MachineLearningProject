@@ -53,15 +53,15 @@ Switzerland \\
 \maketitle
 
 \begin{abstract}
-In this final report, we managed to use 3 different classifiers, a $k$th nearest neighbour, a neural network classifier and logistic regression classifier to achieve a reasonable classification accuracy of a subset of CIFAR-10 images dubbed \code{subset_CIFAR10}. We also implemented classifiers such as na\"ive Bayes decision tree with little success. We have also investigated different features to use in classification.
+In this final report, we managed to use 3 different classifiers, a $k$ nearest neighbour, a neural network classifier and logistic regression classifier to achieve a reasonable classification accuracy of a subset of CIFAR-10 images dubbed \code{subset_CIFAR10}. We also implemented classifiers such as na\"ive Bayes decision tree with little success. We have also investigated different features to use in classification.
 \end{abstract}
 
 \section{Introduction}
 
 For this project, we aim to classify CIFAR-10 images dataset - a collection of 10000 32$\x$32 pixels images, into one of ten categories. As per project requirements,
 our classifiers are trained solely on a subset of 5000 CIFAR-10 images provided to us as \code{subset_CIFAR10}. As of the date of the final report, we have explored many
-classifiers, including Na\"ive Bayes, logistic regression, neural network, deep neural network, convolutional neural network, decision tree, and $k$th nearest neighbour. 
-In comparison the our advancement at the midway report, we managed to improve our neural network to a decent accuracy and speed up our $k$th nearest neighbour enough so that it complete in the 10 minutes times frame allowed on Autolab.  We were also able to implement a classifier in an above baseline accuracy using Logistic Regression.
+classifiers, including Na\"ive Bayes, logistic regression, neural network, deep neural network, convolutional neural network, decision tree, and $k$ nearest neighbour. 
+In comparison the our advancement at the midway report, we managed to improve our neural network to a decent accuracy and speed up our $k$ nearest neighbour enough so that it complete in the 10 minutes times frame allowed on Autolab.  We were also able to implement a classifier in an above baseline accuracy using Logistic Regression.
 
 \subsection{Motivation}
 
@@ -81,7 +81,7 @@ Further research was done in attempt to understand convolutional neural networks
 \end{itemize}
 
 \subsection{Dataset}
-CIFAR-10 is a labeled subset of the 80 million tiny images [4]. The training data is a random subset of CIFAR-10 which contains 5000 labeled color images (size of 32*32*3) balanced in 10 different classes, while the test set is a random subset of an unknown number of images without disclosure of their labels. After the classification model is well trained with appropriate parameters, it will be used for testing set in order to generate predicting labels. Below is a random sample from the CIFAR-10 with 10 random images from each class [4].
+CIFAR-10 is a labeled subset of the 80 million tiny images [3]. The training data is a random subset of CIFAR-10 which contains 5000 labeled color images (size of $32\x 32\x 3$) balanced in 10 different classes, while the test set is a random subset of an unknown number of images without disclosure of their labels. After the classification model is well trained with appropriate parameters, it will be used for testing set in order to generate predicting labels. Below is a random sample from the CIFAR-10 with 10 random images from each class [3].
 
 \begin{figure}
 \centering
@@ -129,7 +129,7 @@ In order to visualise the gradient descent, we implemented two error functions:
   $$E_1 = \summ{i}{}{|t_i-o_i|}$$
 and
   $$E_2 = \summ{i}{}{(t_i-o_i)^2}$$
-Both these errors were only used once per epoch to test for convergence, which we defined as $E_{t}\geq E_{t-1}$.
+where $t_i$ and $o_i$ are the expected output and the actual output of the $i$th neuron respectively. Both these errors were only used once per epoch\footnote{one full iteration over the entire dataset for stochastic gradient descent} to test for convergence, which we defined as $E_{t}\geq E_{t-1}$.
 
 \begin{figure}
 \centering
@@ -143,8 +143,8 @@ The final classifier we decided to implement consists of 496 input layers, each 
 where $w$ is the weight given to any of the $x$s, and $b$ is a scalar that indicate the bias of this neuron. Both $w$ and $b$ are learnt by stochastic gradient descent. with a learning rate $\eta=0.001$ and momentum $\alpha=0.8$.
 
 
-\subsubsection{$k$th Nearest Neighbour}
-Our final attempt at a classifier was to implement $k$th nearest neighbour with a image kernel. $k$th nearest neighbour seeks to find the, as the name suggest, $k$ nearest neighbours and obtain the mode label. We have tried a variety of input features with this algorithm, including dominant colour, scale-invariant feature transform (SIFT), and histogram of oriented gradients (HOG). For SIFT, the distance metric was to first perform \code{vl_ubcmatch} on test sample and neighbour, and order neighbours by number of matches and then by sum of distance, so suppose that
+\subsubsection{$k$ Nearest Neighbour}
+Our final attempt at a classifier was to implement $k$ nearest neighbour with a image kernel. $k$ nearest neighbour seeks to find the, as the name suggest, $k$ nearest neighbours and obtain the mode label. We have tried a variety of input features with this algorithm, including dominant colour, scale-invariant feature transform (SIFT), and histogram of oriented gradients (HOG). For SIFT, the distance metric was to first perform \code{vl_ubcmatch} on test sample and neighbour, and order neighbours by number of matches and then by sum of distance, so suppose that
 \begin{lstlisting}
   [~, scores] = vl_ubcmatch(sample, neighbour);
   [n, d] = size(scores);
@@ -159,42 +159,40 @@ $$d=\summ{i=1}{N}\summ{j=1}{N}\summ{k=1}{K}|F_{ijk}-G_{ijk}|$$
 
 For the midway report, we were not able to respect the maximum of running time of 10 minutes. For this report we were able to improve our running time and therefore fit in the time window of Autolab. Sadly, we had to reduce the size of the training set, reducing therefore our accuracy. Our accuracy is now of $49.1\%$ instead of the 53\% advertised in the midway report.
 
-Our improvements for  $k$ nearest neighbour consist mostly of implementing a datastructure known as $kd$-tree (k-dimensional tree). This datastructure is a space partitioning datastructure. It is similar in the form to a binary tree. Each node that is not part of the leafs represent an hyperplane in a particular dimension cutting a subspace in two. Each level of the $kd$-tree is another dimension above the previous one. The root level representing dimension one. Since we use hog, our data still have a really high number of features and we don't use each feature as a dimension. 
+Our improvements for  $k$ nearest neighbour consist mostly of implementing a data structure known as $k$d-tree (k-dimensional tree). This data structure is a space partitioning data structure. It is similar in the form to a binary tree. Each node that is not part of the leaves represent an hyperplane in a particular dimension cutting a subspace in two. Each level of the $k$d-tree is another dimension above the previous one. The root level representing dimension one. Since we used HOG, our data still have a really high number of features and we therefore did not use each feature as a dimension. 
 
 
-The interest of $kd$-tree come from the fact that while searching for the $k$ nearest neighbour, the datastructure let us discard half the points if the distance between the actual furthest neighbour and the point is smaller than the distance from the hyperplane to the point. The justification is easy to see on a figure: if the furthest neighbour actually found is on the same side of the hyperplane than the point, there is no need to look at the other side of the hyperplane (see Figure 3.).
+The interest in $k$d-tree resulted from the fact that while searching for the $k$ nearest neighbour, the data structure let us discard half the points if the distance between the actual furthest neighbour and the point is smaller than the distance from the hyperplane to the point. The justification is easy to see with an illustration: if the furthest neighbour actually found is on the same side of the hyperplane as the point, there is no need to look at the other side of the hyperplane (see Figure 3).
 \begin{figure}
 \centering
 \includegraphics[scale=0.8]{3dtree.png}
-\caption{Representation of a $3$d-tree. First split in red, second in green and third in blue. [5]}
+\caption{Representation of a $3$d-tree. First split in red, second in green and third in blue. [4]}
 \end{figure}
-Because the relative slow classification come form the number of comparison to do between each points to find the nearest neighbours, being able to reduce the size of the set of points is an interesting speed up. The implementation of the $kd$-tree is done using the \code{struct} elements in Matlab. 
+Because the relative slow classification come form the number of comparison to do between each points to find the nearest neighbours, being able to reduce the size of the set of points is an important speed up. The implementation of the $k$d-tree is done using the \code{struct} elements in Matlab. 
 
-Although in theory, we reduce the running time from $\mathcal{O}(f*N)$ where f is the number of features and N the number of points to $\mathcal{O}(\log{}N)$, our speed up is smaller due to a perfectible implementation, the use of \code{struct} instead of our own datastructure and points not uniformly placed . Our speedup is around $30$\%.
+Although in theory, we reduce the running time from $\mathcal{O}(fN)$ where f is the number of features and N the number of points to $\mathcal{O}(\log N)$, our speed up is smaller due to a perfectible implementation, such as added friction and greater constant factors, the use of \code{struct} instead of our own data structure and points not uniformly placed . Our speedup is around $30\%$.
 We also had to implement a bounded priority queue keep track of the nearest neighbours effectively. This priority queue was implemented using a normal Matlab array.
-
-
 
 
 \subsubsection{Deep Neural Network}
 
-The last classifier we used is a Deep Neural Network. A Deep Neural Network or DDN for short is a neural network with multiple layers allowing this way to model and classify more abstract data. 
+The last classifier we used is a Deep Neural Network. A Deep Neural Network or DNN for short is a neural network with multiple layers allowing this way to model and classify more abstract data. 
 
-As for Neural Netwrok, we used the $L_2$ error to test our convergence.
+As for neural network, we used the $L_2$ error to test our convergence as discussed previously.
  $$L_2 = \summ{i}{}{(t_i-o_i)^2}$$
 
-One trick that we used to train our Deep Neural Network is Learning rate decay. Decreasing the learning rate trough time help us in multiple way. First, if the learning rate is constant and big, we will never converge. Conversely, if the learning rate it too small, we can get stuck in a local minima in addition to the fact that the learning will be really slow. Using a learning rate depending on the iteration number let us counter this two risks.
-As recommend by Samy Bengio [3], we used this decay function:
+We have previously tried to set a fixed learning rate for our learner. However, as discussed by Samy Bengio [5], if the learning rate is too small, we would converge at a local minimum, and training itself would take a long time; if the learning rate is too high, we would skip past the global minimum and perhaps never converge, also, our gradient descent would be too coarse. Thus, as a simple solution, we tried to use learning rate decay to vary our learning rate as suggested by Bengio, as doing so avoids the problems of selecting a fixed learning rate. The following was the decay function we used:
 
-$$\eta(s)=\dfrac{\eta_0}{(1+\eta_d*s)}$$ 
+$$\eta(s)=\dfrac{\eta_0}{(1+s\eta_d)}$$ 
+
 where $\eta_0$ is the initial learning rate and $\eta_d$ is the rate at which the learning rate decay. 
 We choose an $\eta_0 = 1$ and an $\eta_d = 0.1$.
 
-For this classifier we ended up choosing to use 3 hidden layers, each composed respectively of $374, 253, 131$ neurons. The output layer output the number of class and therefore contains 10 neurons. The input layer is composed of 496 layers since we used a size of cell of 8 in the computation of the HOG value. 
+For this classifier we ended up choosing to use 3 hidden layers, each composed respectively of $374, 253, 131$ neurons, which is a linear interpolation to the number of output and input neurons. The output layer output the number of class and therefore contains 10 neurons. The input layer is composed of 496 layers since we used a size of cell of 8 in the computation of the HOG value. 
 
 \begin{figure}
 \centering
-\includegraphics[scale=0.55]{ErrorDNN.png}
+\includegraphics[scale=0.55]{dnn_train.png}
 \caption{Evolution of the number of error on a dataset of 5000 images until the DNN reach convergence. }
 \end{figure}
 
@@ -266,16 +264,19 @@ Even if we are far from the smallest error rate achieved in the literature or in
 
 Our classifiers endured important changes and improvements since from the midway report. We went from having only one classifier working too slowly, to three fully functional decent classifiers.
 
-The use of a special datastructure for $k$ nearest neighbour was necessary and brought the speed-up expected. Even with this improvement, $k$ nearest neighbour is still very slow for the classification in comparison to other classifiers. Therefore, if we need to classify regularly new images or a higher number of images, we would investigate some other classifiers.
+The use of a special data structure for $k$ nearest neighbour was necessary and brought the speed-up expected. Even with this improvement, $k$ nearest neighbour is still very slow for the classification in comparison to other classifiers. Therefore, if we need to classify regularly new images or a higher number of images, we would investigate some other classifiers.
 
 We didn't spend a lot of time trying to counter overfitting. This would probably be an interesting track to follow to improve even more our classifiers. 
 
 Our features extractions were usable but far from excellent. It was difficult to assign a good output value, consistent with the other features. The use of VLFeat really helped and if we would had to improve our project further we would look to more complex features extraction reposing on strong theory basis. 
 
-One of our failure was bringing convolutionnal neural network to work completely. Even with the long time we spent working on this classifier we were not able to find the combination of parameters to get a decent result. We are confident that with more time we would have brought this classifier to work and probably achieved a really good score as other implementations testifies.
+One of our failures was not completely implementing a working convolutional neural network. Even with the long time we spent working on this classifier we were not able to find the combination of parameters to get a decent result. We are confident that with more time we would have brought this classifier to work and probably achieved a really good score as other implementations testifies. We have already learnt a significant amount about the concept and implementation details of these networks.
 
-We would have like to improve our Deep Neural Network by replacing the output layer that just take the maximum by a Support Vector Machine or a Mixture Model. 
+Finally, we would like to try to use other means of classification given the neuron output, i.e. to feed the output for our neural networks to a support vector machine (SVM) or a mixture model to achieve the final classification, as in practice, we used the \code{max} function, which results in discarding additional information stored in the other neurons which were not exactly used. A more complex classifier such as SVM could split the data into the various classes better by making use of the discarded information which is the other neuron outputs.
 
+
+\subsection{Contributions}
+Simon implemented the neural networks, including DNN and CNN, and Nicolas implemented $k$ nearest neighbours, with the appropriate $k$-d tree data structure, logistic regression, na\"ive bayes classifiers and feature selection, such a edge detection.
 
 
 
@@ -285,12 +286,11 @@ We would have like to improve our Deep Neural Network by replacing the output la
 
 [2] Heaton, J. (2008). \textit{Introduction to Neural Networks for Java} (2nd ed., pp. 158-159). St. Louis, Mo.: Heaton research.
 
+[3] Alex, K. (2009). \textit{Learning multiple layers of features from tiny images}
 
-[3] Bengio, S. (2003). \textit{An Introduction to Statistical Machine Learning - Neural Networks -} (slides 32) Martigny, CH.: Dalle Molle Institute for Perceptual Artificial Intelligence (IDIAP)
+[4] Wikimedia.org. \url{https://commons.wikimedia.org/wiki/File:3dtree.png}
 
-[4] Alex, K. (2009). \textit{Learning multiple layers of features from tiny images}
-
-[5] Wikimedia.org. \url{https://commons.wikimedia.org/wiki/File:3dtree.png}
+[5] Bengio, S. (2003). \textit{An Introduction to Statistical Machine Learning - Neural Networks -} (slides 32) Martigny, CH.: Dalle Molle Institute for Perceptual Artificial Intelligence (IDIAP)
 }
 
 
