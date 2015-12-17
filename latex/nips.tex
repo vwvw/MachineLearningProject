@@ -53,18 +53,15 @@ Switzerland \\
 \maketitle
 
 \begin{abstract}
-In this midway report, we managed to use a $k$th nearest neighbour classifier to achieve a reasonable classification accuracy of a subset of CIFAR-10 images dubbed \code{subset_CIFAR10}, albeit with slower runtime. We also implemented classifiers such as na\"ive Bayes and neural networks with little success. We have also investigated different features to use in classification.
+In this final report, we managed to use 3 different classifiers, a $k$th nearest neighbour, a neural network classifier and logistic regression classifier to achieve a reasonable classification accuracy of a subset of CIFAR-10 images dubbed \code{subset_CIFAR10}. We also implemented classifiers such as na\"ive Bayes decision tree with little success. We have also investigated different features to use in classification.
 \end{abstract}
 
 \section{Introduction}
 
-For this project, we aim to classify CIFAR-10 images dataset - a collection of 10000 32$\x$32 images, into one of ten categories, as per project requirements,
-our classifiers are trained solely on a subset of 5000 CIFAR-10 images provided to us as \code{subset_CIFAR10}. As of this midway report, we have explored many
-classifiers, including Na\"ive Bayes, logistic regression, neural network, deep neural network, convolutional neural network, and $k$th nearest neighbour. Due
-to the complicated nature of neural networks, we have not yet found a set of satisfactory parameters that would give a decent output. However, we were able to
-produce a $k$th nearest neighbour classifier with an accuracy of $53\%$\footnote{This classifier ran for 194 seconds on a local machine with a 2.4 GHz quad-core
-processor. The classifier was highly parallelised, utilising \code{parfor} with 4 worker threads. The 53\% accuracy was tested on \code{test_batch.mat} from 
-CIFAR-10 dataset.}
+For this project, we aim to classify CIFAR-10 images dataset - a collection of 10000 32$\x$32 pixels images, into one of ten categories. As per project requirements,
+our classifiers are trained solely on a subset of 5000 CIFAR-10 images provided to us as \code{subset_CIFAR10}. As of the date of the final report, we have explored many
+classifiers, including Na\"ive Bayes, logistic regression, neural network, deep neural network, convolutional neural network, decision tree, and $k$th nearest neighbour. 
+In comparison the our advancement at the midway report, we managed to improve our neural network to a decent accuracy and speed up our $k$th nearest neighbour enough so that it complete in the 10 minutes times frame allowed on Autolab.  We were also able to implement a classifier in an above baseline accuracy using Logistic Regression.
 
 \subsection{Motivation}
 
@@ -142,9 +139,27 @@ However, this metric did not perform very well, and its classification accuracy 
 We also used HOG features with $\codem{cell_size}=8$. Here, our distance metric is the L1 sum of the difference of the HOG features. Suppose that the HOG feature of each image is a $N\x N\x K$ tensor, and the HOG features of the test image and its neighbour is $F$ and $G$ respectively, then our distance metric can be characterised as
 $$d=\summ{i=1}{N}\summ{j=1}{N}\summ{k=1}{K}|F_{ijk}-G_{ijk}|$$
 
-This classifier is our best performing classifier so far, with an accuracy of $53\%$. Our final attempt also included the most dominant colour (in RGB) in the image.
+For the midway report, we were not able to respect the maximum of running time of 10 minutes. For this report we were able to improve our running time and therefore fit in the time window of Autolab. Sadly, we had to reduce the size of the training set, reducing therefore our accuracy. Our accuracy is now of $49.1\%$ instead of the 53\% advertised in the midway report.
 
-Unfortunately, our only optimisation done so far for this classifier was to use \code{parfor} instead of \code{for} to invoke parallelism in code, and that has brought the runtime down to around 3 minutes on a multi-core machine using Matlab's Parallel Computing Toolkit. We are, however, aware that the Toolkit is not available in Octave, and we would not be utilise it during the final submission. Hence, we are also looking at other optimisations, such as implementing a $k$-d tree to hold the nearest neighbour.
+Our improvements for  $k$ nearest neighbour consist mostly of implementing a datastructure known as $kd$-tree (k-dimensional tree). This datastructure is a space partitioning datastructure. It is similar in the form to a binary tree. Each node that is not part of the leafs represent an hyperplane in a particular dimension cutting a subspace in two. Each level of the $kd$-tree is another dimension above the previous one. The root level representing dimension one. Since we use hog, our data still have a really high number of features and we don't use each feature as a dimension. 
+
+
+The interest of $kd$-tree come from the fact that while searching for the $k$ nearest neighbour, the datastructure let us discard half the points if the distance between the actual furthest neighbour and the point is smaller than the distance from the hyperplane to the point. The justification is easy to see on a figure: if the furthest neighbour actually found is on the same side of the hyperplane than the point, there is no need to look at the other side of the hyperplane (see Figure 1.).
+\begin{figure}
+\centering
+\includegraphics{3dtree.png}
+\caption{Representation of a $3$d-tree. First split in red, second in green and third in blue.}
+\end{figure}
+Because the relative slow classification come form the number of comparison to do between each points to find the nearest neighbours, being able to reduce the size of the set of points is an interesting speed up. The implementation of the $kd$-tree is done using the \code{struct} elements in Matlab. 
+
+Although in theory, we reduce the running time from $\mathcal{O}(f*N)$ where f is the number of features and N the number of points to $\mathcal{O}(\log{}N)$, our speed up is smaller due to a perfectible implementation, the use of \code{struct} instead of our own datastructure and points not uniformly placed . Our speedup is around $30$\%.
+We also had to implement a bounded priority queue keep track of the nearest neighbours effectively. This priority queue was implemented using a normal Matlab array.
+
+
+
+
+\subsubsection{Logistic Regression}
+
 
 \subsection{Features Extraction}
 We have attempted to extract different features from the image in order to reduce noise in the data.
@@ -182,13 +197,28 @@ For $k$th nearest neighbour, we would need to store the neighbours in a more org
 
 \subsection{Selection of Hidden Units in Neural Network}
 
-Our neural network classifier design used 496 input neurons as the result of a HOG feature with cell size 8, and 10 output neurons each representing the probability of classifying the image into one of the classes. The class picked is the class label with the highest probability, i.e. $\arg\max_i {x_i}$. To determine the optimal number of neurons in the hidden layer, we conformed to Heaton's suggestions [2] and trained 3 neural networks each with a number of hidden neurons ranging from 200 to 300, resulting in 300 different networks. Each of the networks is trained with a learning rate $\eta=0.001$ and momentum $\alpha=0.8$. For each network, we computed the training accuracy and test accuracy. Training accuracy was achieved by running the classifier on the 5000 given training samples, whereas test accuracy was achieved using the 10000-image \code{test_batch} in the CIFAR-10 dataset. We then plotted the $\max$ of both training and test accuracy\footnote{The classifiers with the $\max$ training and test accuracies are not necessarily the same ones.}. The results are shown in Figure 1. We have seen that the test accuracy is relatively consistent when the number of hidden neurons is between 200 to 260, however, as the number of neurons increases above 290, the chances for gradient descent to find a local minimum that is giving a baseline reading of 0.1\footnote{This baseline is simply classifying everything as one class (i.e. picking the most popular class label).} increases. However, it could also be that we are extremely unlucky in our simulation where none of the 3 initialisations gives the optimal result. running Matlab's \code{max} function on test accuracy gives the number of hidden neurons to be 236, which is the value we used as hidden layer. We noticed that for non-baseline classifiers, the training accuracy is significantly higher than test accuracy, and the training accuracy also fluctuates much greater than test accuracy. Hence, we conclude that a hidden layer of anywhere between 200-260 neurons could be optimal for our network.
+Our neural network classifier design used 496 input neurons as the result of a HOG feature with cell size 8, and 10 output neurons each representing the probability of classifying the image into one of the classes. The class picked is the class label with the highest probability, i.e. $\arg\max_i {x_i}$. To determine the optimal number of neurons in the hidden layer, we conformed to Heaton's suggestions [2] and trained 3 neural networks each with a number of hidden neurons ranging from 200 to 300, resulting in 300 different networks. Each of the networks is trained with a learning rate $\eta=0.001$ and momentum $\alpha=0.8$. For each network, we computed the training accuracy and test accuracy. Training accuracy was achieved by running the classifier on the 5000 given training samples, whereas test accuracy was achieved using the 10000-image \code{test_batch} in the CIFAR-10 dataset. We then plotted the $\max$ of both training and test accuracy\footnote{The classifiers with the $\max$ training and test accuracies are not necessarily the same ones.}. The results are shown in Figure 2. We have seen that the test accuracy is relatively consistent when the number of hidden neurons is between 200 to 260, however, as the number of neurons increases above 290, the chances for gradient descent to find a local minimum that is giving a baseline reading of 0.1\footnote{This baseline is simply classifying everything as one class (i.e. picking the most popular class label).} increases. However, it could also be that we are extremely unlucky in our simulation where none of the 3 initialisations gives the optimal result. running Matlab's \code{max} function on test accuracy gives the number of hidden neurons to be 236, which is the value we used as hidden layer. We noticed that for non-baseline classifiers, the training accuracy is significantly higher than test accuracy, and the training accuracy also fluctuates much greater than test accuracy. Hence, we conclude that a hidden layer of anywhere between 200-260 neurons could be optimal for our network.
 
 \begin{figure}
 \centering
 \includegraphics{fig1.png}
 \caption{The training and test errors for our neural network.}
 \end{figure}
+
+\subsection{Selection of the number of Nearest Neighbour}
+
+The choice of $k$ in $k$ th nearest neighbour is an important point for this algorithm. A small k, means our algorithm will be much more influenced by noise or small variation in the data. Conversely, a big $k$ will not be much influenced by the noise but also weaken our hypothesis that points near each other have the same labels. In addition to that, a bigger $k$ will slow down our algorithm since we will have to look at more neighbours before being able to use the properties of our $kd$ tree. A widely spread rule of thumb on internet and in the literature is that  $\sqrt[2]{N}$ (where N is the number of class) is a good choice but not always optimal. 
+We have experimented our $k$ nearest neighbour algorithm with different value of $k$ using leave-one-out cross validation. As we can see in Figure 3. The optimal k for our dataset $k$ is around 7. 
+We can clearly see a increase in the error rate when we have a much higher $k$ meaning that we include a too big region and some points in the border will be misclassified. 
+
+
+\begin{figure}
+\centering
+\includegraphics{kChoice.png}
+\caption{The number of neighbour and the test error. }
+\end{figure}
+
+
 
 
 
