@@ -13,7 +13,6 @@ function [ output ] = knnClassify( data, training_tree, k)
         %first column dist, last column label
         BPQ = knn_find_k_closest( hog(:,i)', training_tree, Inf(k,dim+2),1);
         output(i) = mode(BPQ(:,end));
-        disp(i)
     end
     
     
